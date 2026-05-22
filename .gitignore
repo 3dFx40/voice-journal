@@ -1,0 +1,15 @@
+node_modules
+.next
+.netlify
+out
+dist
+coverage
+.env
+.env*.local
+app-storage
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dev-server.*.log
