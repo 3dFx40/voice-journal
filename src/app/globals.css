@@ -468,6 +468,12 @@ textarea:focus-visible {
   color: var(--text);
 }
 
+.secondary-button.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .danger-button {
   border: 1px solid var(--danger);
   background: var(--danger);
@@ -504,6 +510,23 @@ textarea:focus-visible {
   display: grid;
   gap: 14px;
   padding: 18px;
+}
+
+.bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 8px;
+  background: var(--accent-wash);
+}
+
+.bulk-actions span {
+  margin-inline-end: auto;
+  color: var(--accent-strong);
+  font-weight: 800;
 }
 
 .stats-row {
@@ -618,6 +641,12 @@ textarea:focus-visible {
   transform: translateY(-1px);
 }
 
+.note-card.selected {
+  border-color: var(--accent-strong);
+  background: var(--accent-wash);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 .note-topline {
   color: var(--muted);
   font-size: 0.86rem;
@@ -654,6 +683,22 @@ textarea:focus-visible {
 .note-actions {
   justify-content: flex-start;
   gap: 8px;
+}
+
+.select-note-button {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--muted);
+  padding: 7px 12px;
+  font-weight: 800;
+}
+
+.select-note-button.selected {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: white;
 }
 
 .round-button {

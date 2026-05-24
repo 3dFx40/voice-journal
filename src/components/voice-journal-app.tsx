@@ -5,6 +5,12 @@ import {
   getCopyableNoteText,
   getNoteListTitle
 } from "@/lib/note-display";
+import {
+  getAllNoteIdsSelected,
+  removeNoteIdsFromSelection,
+  toggleNoteIdSelection,
+  toggleVisibleNoteSelection
+} from "@/lib/note-selection";
 import { NOTE_TYPE_LABELS, NOTE_TYPES, type NoteType } from "@/lib/note-types";
 import {
   formatRecordingDuration,
@@ -45,6 +51,8 @@ export function VoiceJournalApp() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<NoteType | "all">("all");
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -107,6 +115,8 @@ export function VoiceJournalApp() {
     [notes]
   );
 
+  const visibleNoteIds = useMemo(() => notes.map((note) => note.id), [notes]);
+
   const todayNoteCount = useMemo(() => {
     const today = new Date().toDateString();
     return notes.filter((note) => new Date(note.createdAt).toDateString() === today).length;
@@ -115,8 +125,10 @@ export function VoiceJournalApp() {
   const primaryRecordingAction = getRecordingPrimaryAction(status);
   const hasActiveRecording = status === "recording" || status === "paused";
   const isRecording = status === "recording";
+  const allVisibleNotesSelected = getAllNoteIdsSelected(selectedNoteIds, visibleNoteIds);
 
   async function startRecording() {
+    setElapsedSeconds(0);
     setError("");
     setMessage("מבקש הרשאה למיקרופון...");
 
@@ -332,7 +344,49 @@ export function VoiceJournalApp() {
       setSelectedNote(null);
       setEditingNote(null);
     }
+    setSelectedNoteIds((ids) => removeNoteIdsFromSelection(ids, [noteId]));
     await loadNotes();
+  }
+
+  async function deleteSelectedNotes() {
+    if (selectedNoteIds.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `למחוק ${selectedNoteIds.length} פתקים מסומנים?`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setError("");
+    const idsToDelete = selectedNoteIds;
+
+    try {
+      const results = await Promise.all(
+        idsToDelete.map((noteId) =>
+          fetch(`/api/notes/${noteId}`, {
+            method: "DELETE"
+          })
+        )
+      );
+
+      if (results.some((response) => !response.ok)) {
+        throw new Error("bulk delete failed");
+      }
+
+      if (selectedNote && idsToDelete.includes(selectedNote.id)) {
+        setSelectedNote(null);
+        setEditingNote(null);
+      }
+
+      setSelectedNoteIds([]);
+      setIsSelectionMode(false);
+      await loadNotes();
+    } catch {
+      setError("מחיקת הפתקים המסומנים נכשלה.");
+    }
   }
 
   async function deleteSelectedNote() {
@@ -360,6 +414,24 @@ export function VoiceJournalApp() {
     setTags(draft.tags);
     setType(draft.type);
     setElapsedSeconds(draft.elapsedSeconds);
+  }
+
+  function toggleSelectionMode() {
+    setIsSelectionMode((enabled) => {
+      if (enabled) {
+        setSelectedNoteIds([]);
+      }
+
+      return !enabled;
+    });
+  }
+
+  function toggleNoteSelection(noteId: string) {
+    setSelectedNoteIds((ids) => toggleNoteIdSelection(ids, noteId));
+  }
+
+  function toggleAllVisibleNotes() {
+    setSelectedNoteIds((ids) => toggleVisibleNoteSelection(ids, visibleNoteIds));
   }
 
   function stopCurrentStream() {
@@ -549,8 +621,39 @@ export function VoiceJournalApp() {
                   <DownloadIcon />
                   ייצא הכל
                 </a>
+                <button
+                  className={isSelectionMode ? "secondary-button active" : "secondary-button"}
+                  type="button"
+                  onClick={toggleSelectionMode}
+                  disabled={notes.length === 0}
+                >
+                  {isSelectionMode ? "בטל בחירה" : "בחירה"}
+                </button>
               </div>
             </div>
+
+            {isSelectionMode ? (
+              <div className="bulk-actions" aria-label="פעולות על פתקים מסומנים">
+                <span>{selectedNoteIds.length} מסומנים</span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={toggleAllVisibleNotes}
+                  disabled={visibleNoteIds.length === 0}
+                >
+                  {allVisibleNotesSelected ? "נקה בחירה" : "בחר הכל"}
+                </button>
+                <button
+                  className="danger-button icon-button"
+                  type="button"
+                  onClick={() => void deleteSelectedNotes()}
+                  disabled={selectedNoteIds.length === 0}
+                >
+                  <TrashIcon />
+                  מחק נבחרים
+                </button>
+              </div>
+            ) : null}
 
             <div className="stats-row" aria-label="סיכום פתקים">
               <span>
@@ -613,9 +716,13 @@ export function VoiceJournalApp() {
                     </div>
                     {group.notes.map((note) => {
                       const listTitle = getNoteListTitle(note);
+                      const isSelected = selectedNoteIds.includes(note.id);
 
                       return (
-                        <article className="note-card" key={note.id}>
+                        <article
+                          className={isSelected ? "note-card selected" : "note-card"}
+                          key={note.id}
+                        >
                           <div className="note-topline">
                             <span className="type-chip">{NOTE_TYPE_LABELS[note.type]}</span>
                             <time dateTime={note.createdAt}>{formatDate(note.createdAt)}</time>
@@ -624,57 +731,76 @@ export function VoiceJournalApp() {
                             className="note-main"
                             type="button"
                             onClick={() => {
+                              if (isSelectionMode) {
+                                toggleNoteSelection(note.id);
+                                return;
+                              }
+
                               setSelectedNote(note);
                               setEditingNote(null);
                             }}
+                            aria-pressed={isSelectionMode ? isSelected : undefined}
                           >
                             <h4 className="note-title">
                               {listTitle || "ללא שם"}
                             </h4>
                           </button>
                           <div className="note-actions">
-                            <button
-                              className="round-button"
-                              type="button"
-                              onClick={() => {
-                                setSelectedNote(note);
-                                setEditingNote(null);
-                              }}
-                              aria-label="פתח פתק"
-                              title="פתח"
-                            >
-                              <OpenNoteIcon />
-                            </button>
-                            <button
-                              className="round-button"
-                              type="button"
-                              onClick={() => void copyNote(note)}
-                              aria-label="העתק פתק"
-                              title="העתק"
-                            >
-                              <CopyIcon />
-                            </button>
-                            <button
-                              className="round-button"
-                              type="button"
-                              onClick={() => {
-                                setSelectedNote(note);
-                                setEditingNote(note);
-                              }}
-                              aria-label="ערוך פתק"
-                              title="ערוך"
-                            >
-                              <EditIcon />
-                            </button>
-                            <button
-                              className="round-button danger"
-                              type="button"
-                              onClick={() => void deleteNoteById(note.id)}
-                              aria-label="מחק פתק"
-                              title="מחק"
-                            >
-                              <TrashIcon />
-                            </button>
+                            {isSelectionMode ? (
+                              <button
+                                className={isSelected ? "select-note-button selected" : "select-note-button"}
+                                type="button"
+                                onClick={() => toggleNoteSelection(note.id)}
+                                aria-pressed={isSelected}
+                              >
+                                {isSelected ? "מסומן" : "סמן"}
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  className="round-button"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedNote(note);
+                                    setEditingNote(null);
+                                  }}
+                                  aria-label="פתח פתק"
+                                  title="פתח"
+                                >
+                                  <OpenNoteIcon />
+                                </button>
+                                <button
+                                  className="round-button"
+                                  type="button"
+                                  onClick={() => void copyNote(note)}
+                                  aria-label="העתק פתק"
+                                  title="העתק"
+                                >
+                                  <CopyIcon />
+                                </button>
+                                <button
+                                  className="round-button"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedNote(note);
+                                    setEditingNote(note);
+                                  }}
+                                  aria-label="ערוך פתק"
+                                  title="ערוך"
+                                >
+                                  <EditIcon />
+                                </button>
+                                <button
+                                  className="round-button danger"
+                                  type="button"
+                                  onClick={() => void deleteNoteById(note.id)}
+                                  aria-label="מחק פתק"
+                                  title="מחק"
+                                >
+                                  <TrashIcon />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </article>
                       );

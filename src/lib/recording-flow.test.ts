@@ -42,4 +42,8 @@ describe("recording flow labels", () => {
       elapsedSeconds: 0
     });
   });
+
+  it("starts a new recording timer from zero", () => {
+    expect(getResetRecordingDraftState().elapsedSeconds).toBe(0);
+  });
 });
