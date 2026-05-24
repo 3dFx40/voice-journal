@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getResetRecordingDraftState,
   formatRecordingDuration,
   getRecordingPrimaryAction,
   getRecordingStatusLabel
@@ -12,7 +13,7 @@ describe("recording flow labels", () => {
       action: "start"
     });
     expect(getRecordingPrimaryAction("recording")).toEqual({
-      label: "עצור",
+      label: "השהה",
       action: "pause"
     });
     expect(getRecordingPrimaryAction("paused")).toEqual({
@@ -30,5 +31,15 @@ describe("recording flow labels", () => {
     expect(formatRecordingDuration(0)).toBe("00:00");
     expect(formatRecordingDuration(75)).toBe("01:15");
     expect(formatRecordingDuration(3670)).toBe("61:10");
+  });
+
+  it("resets saved recording draft state back to a fresh recording", () => {
+    expect(getResetRecordingDraftState()).toEqual({
+      transcript: "",
+      title: "",
+      tags: "",
+      type: "thought",
+      elapsedSeconds: 0
+    });
   });
 });

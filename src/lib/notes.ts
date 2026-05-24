@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { getDeployStore, getStore } from "@netlify/blobs";
 import { NOTE_TYPE_LABELS, NOTE_TYPES, type NoteType, isNoteType } from "./note-types";
 
 export { NOTE_TYPE_LABELS, NOTE_TYPES, isNoteType };
@@ -32,14 +31,24 @@ export type NoteFilters = {
   type?: NoteType | "all";
 };
 
+type SupabaseNoteRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  type: unknown;
+  transcript: string;
+  title: string | null;
+  tags: unknown;
+};
+
 export function getDataDir() {
   return process.env.VOICE_JOURNAL_DATA_DIR ?? join(process.cwd(), "app-storage");
 }
 
-export function shouldUseNetlifyBlobs() {
+export function shouldUseSupabase() {
   return (
-    process.env.VOICE_JOURNAL_STORAGE === "netlify-blobs" ||
-    process.env.NETLIFY === "true"
+    process.env.VOICE_JOURNAL_STORAGE === "supabase" ||
+    Boolean(process.env.SUPABASE_URL && getSupabaseKey())
   );
 }
 
@@ -72,12 +81,16 @@ export async function listNotes(filters: NoteFilters = {}, dataDir = getDataDir(
 }
 
 export async function getNote(id: string, dataDir = getDataDir()) {
+  if (shouldUseSupabase()) {
+    return readSupabaseNote(id);
+  }
+
   const notes = await readNotes(dataDir);
   return notes.find((note) => note.id === id) ?? null;
 }
 
 export async function createNote(input: NoteInput, dataDir = getDataDir()) {
-  const notes = await readNotes(dataDir);
+  const notes = shouldUseSupabase() ? [] : await readFileNotes(dataDir);
   const now = new Date().toISOString();
   const note: VoiceNote = {
     id: crypto.randomUUID(),
@@ -90,19 +103,22 @@ export async function createNote(input: NoteInput, dataDir = getDataDir()) {
   };
 
   validateNoteInput(note);
-  await writeNotes([note, ...notes], dataDir);
+
+  if (shouldUseSupabase()) {
+    return createSupabaseNote(note);
+  }
+
+  await writeFileNotes([note, ...notes], dataDir);
   return note;
 }
 
 export async function updateNote(id: string, update: NoteUpdate, dataDir = getDataDir()) {
-  const notes = await readNotes(dataDir);
-  const index = notes.findIndex((note) => note.id === id);
+  const previous = await getNote(id, dataDir);
 
-  if (index === -1) {
+  if (!previous) {
     return null;
   }
 
-  const previous = notes[index];
   const updated: VoiceNote = {
     ...previous,
     ...update,
@@ -114,29 +130,48 @@ export async function updateNote(id: string, update: NoteUpdate, dataDir = getDa
   };
 
   validateNoteInput(updated);
+
+  if (shouldUseSupabase()) {
+    return updateSupabaseNote(id, updated);
+  }
+
+  const notes = await readFileNotes(dataDir);
+  const index = notes.findIndex((note) => note.id === id);
+
+  if (index === -1) {
+    return null;
+  }
+
   notes[index] = updated;
-  await writeNotes(notes, dataDir);
+  await writeFileNotes(notes, dataDir);
   return updated;
 }
 
 export async function deleteNote(id: string, dataDir = getDataDir()) {
-  const notes = await readNotes(dataDir);
+  if (shouldUseSupabase()) {
+    return deleteSupabaseNote(id);
+  }
+
+  const notes = await readFileNotes(dataDir);
   const remaining = notes.filter((note) => note.id !== id);
 
   if (remaining.length === notes.length) {
     return false;
   }
 
-  await writeNotes(remaining, dataDir);
+  await writeFileNotes(remaining, dataDir);
   return true;
 }
 
 async function readNotes(dataDir: string): Promise<VoiceNote[]> {
-  if (shouldUseNetlifyBlobs()) {
-    const notes = await getVoiceJournalStore().get("notes.json", { type: "json" });
-    return Array.isArray(notes) ? normalizeStoredNotes(notes) : [];
+  if (shouldUseSupabase()) {
+    return readSupabaseNotes();
   }
 
+  return readFileNotes(dataDir);
+}
+
+async function readFileNotes(dataDir: string): Promise<VoiceNote[]> {
   try {
     const raw = await readFile(notesPath(dataDir), "utf8");
     const parsed = JSON.parse(raw) as unknown[];
@@ -149,27 +184,131 @@ async function readNotes(dataDir: string): Promise<VoiceNote[]> {
   }
 }
 
-async function writeNotes(notes: VoiceNote[], dataDir: string) {
-  if (shouldUseNetlifyBlobs()) {
-    await getVoiceJournalStore().setJSON("notes.json", notes);
-    return;
-  }
-
+async function writeFileNotes(notes: VoiceNote[], dataDir: string) {
   const path = notesPath(dataDir);
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, JSON.stringify(notes, null, 2), "utf8");
 }
 
-function getVoiceJournalStore() {
-  if (
-    process.env.NETLIFY === "true" &&
-    process.env.CONTEXT &&
-    process.env.CONTEXT !== "production"
-  ) {
-    return getDeployStore({ name: "voice-journal" });
+async function readSupabaseNotes() {
+  const rows = await supabaseRequest<SupabaseNoteRow[]>(
+    "/voice_notes?select=*&order=created_at.desc"
+  );
+  return normalizeStoredNotes(rows.map(fromSupabaseRow));
+}
+
+async function readSupabaseNote(id: string) {
+  const rows = await supabaseRequest<SupabaseNoteRow[]>(
+    `/voice_notes?select=*&id=eq.${encodeURIComponent(id)}&limit=1`
+  );
+  return rows[0] ? normalizeStoredNote(fromSupabaseRow(rows[0])) : null;
+}
+
+async function createSupabaseNote(note: VoiceNote) {
+  const rows = await supabaseRequest<SupabaseNoteRow[]>("/voice_notes", {
+    method: "POST",
+    body: JSON.stringify(toSupabaseRow(note))
+  });
+  return normalizeSupabaseResult(rows[0], "Could not save note");
+}
+
+async function updateSupabaseNote(id: string, note: VoiceNote) {
+  const rows = await supabaseRequest<SupabaseNoteRow[]>(
+    `/voice_notes?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(toSupabaseUpdate(note))
+    }
+  );
+  return rows[0] ? normalizeSupabaseResult(rows[0], "Could not update note") : null;
+}
+
+async function deleteSupabaseNote(id: string) {
+  const rows = await supabaseRequest<SupabaseNoteRow[]>(
+    `/voice_notes?id=eq.${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
+  return rows.length > 0;
+}
+
+async function supabaseRequest<T>(path: string, init: RequestInit = {}) {
+  const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  const key = getSupabaseKey();
+
+  if (!url || !key) {
+    throw new Error("Supabase storage requires SUPABASE_URL and a server API key");
   }
 
-  return getStore({ name: "voice-journal", consistency: "strong" });
+  const response = await fetch(`${url}/rest/v1${path}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...init.headers
+    }
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(
+      `Supabase request failed (${response.status}): ${details || response.statusText}`
+    );
+  }
+
+  return (await response.json()) as T;
+}
+
+function getSupabaseKey() {
+  return (
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
+function normalizeSupabaseResult(row: SupabaseNoteRow | undefined, fallback: string) {
+  const note = row ? normalizeStoredNote(fromSupabaseRow(row)) : null;
+
+  if (!note) {
+    throw new Error(fallback);
+  }
+
+  return note;
+}
+
+function fromSupabaseRow(row: SupabaseNoteRow): Partial<VoiceNote> {
+  return {
+    id: row.id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    type: isNoteType(row.type) ? row.type : undefined,
+    transcript: row.transcript,
+    title: row.title ?? undefined,
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : []
+  };
+}
+
+function toSupabaseRow(note: VoiceNote): SupabaseNoteRow {
+  return {
+    id: note.id,
+    created_at: note.createdAt,
+    updated_at: note.updatedAt,
+    type: note.type,
+    transcript: note.transcript,
+    title: note.title ?? null,
+    tags: note.tags
+  };
+}
+
+function toSupabaseUpdate(note: VoiceNote): Partial<SupabaseNoteRow> {
+  return {
+    updated_at: note.updatedAt,
+    type: note.type,
+    transcript: note.transcript,
+    title: note.title ?? null,
+    tags: note.tags
+  };
 }
 
 function notesPath(dataDir: string) {

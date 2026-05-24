@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getCopyableNoteText,
-  getNoteListTitle,
-  shouldShowTranscriptPreview
+  getNoteListTitle
 } from "@/lib/note-display";
 import { NOTE_TYPE_LABELS, NOTE_TYPES, type NoteType } from "@/lib/note-types";
 import {
   formatRecordingDuration,
   getRecordingPrimaryAction,
+  getResetRecordingDraftState,
   getRecordingStatusLabel,
   type RecordingStatus
 } from "@/lib/recording-flow";
@@ -23,6 +23,12 @@ type VoiceNote = {
   title?: string;
   tags: string[];
 };
+
+const WAVE_LEVELS = [
+  16, 24, 12, 34, 46, 26, 58, 44, 28, 52, 72, 38, 50, 30, 64, 42, 26, 56, 36,
+  68, 82, 48, 34, 24, 40, 30, 18, 28, 22, 16, 24, 20, 14, 18, 12, 22, 16, 10,
+  14, 12, 18, 10, 12, 16
+];
 
 export function VoiceJournalApp() {
   const [notes, setNotes] = useState<VoiceNote[]>([]);
@@ -101,8 +107,14 @@ export function VoiceJournalApp() {
     [notes]
   );
 
+  const todayNoteCount = useMemo(() => {
+    const today = new Date().toDateString();
+    return notes.filter((note) => new Date(note.createdAt).toDateString() === today).length;
+  }, [notes]);
+
   const primaryRecordingAction = getRecordingPrimaryAction(status);
   const hasActiveRecording = status === "recording" || status === "paused";
+  const isRecording = status === "recording";
 
   async function startRecording() {
     setError("");
@@ -342,10 +354,12 @@ export function VoiceJournalApp() {
   }
 
   function resetDraft() {
-    setTranscript("");
-    setTitle("");
-    setTags("");
-    setType("thought");
+    const draft = getResetRecordingDraftState();
+    setTranscript(draft.transcript);
+    setTitle(draft.title);
+    setTags(draft.tags);
+    setType(draft.type);
+    setElapsedSeconds(draft.elapsedSeconds);
   }
 
   function stopCurrentStream() {
@@ -355,237 +369,327 @@ export function VoiceJournalApp() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div>
-          <h1>פנקס קולי</h1>
-          <p>פנקס פרטי למחשבות, חלומות, רעיונות ותזכורות בקול.</p>
+      <header className="top-bar">
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">
+            <WaveMarkIcon />
+          </span>
+          <div>
+            <h1>יומן קולי</h1>
+            <p>פתקים פרטיים למחשבות, חלומות, רעיונות ותזכורות בקול.</p>
+          </div>
         </div>
-        <span
-          className={`status-pill ${
-            status === "recording" || status === "paused" ? "recording" : ""
-          }`}
-        >
-          {getRecordingStatusLabel(status)}
-        </span>
+        <div className="header-meta" aria-label="מצב האפליקציה">
+          <span className="status-pill">
+            <span className="live-dot" aria-hidden="true" />
+            מסונכרן מקומית
+          </span>
+          <span
+            className={`status-pill ${
+              status === "recording" || status === "paused" ? "recording" : ""
+            }`}
+          >
+            {getRecordingStatusLabel(status)}
+          </span>
+        </div>
       </header>
+
       {copyMessage ? <p className="message success app-message">{copyMessage}</p> : null}
 
-      <div className="main-grid">
-        <section className="panel recorder-panel" aria-labelledby="recording-title">
-          <h2 id="recording-title">הקלטה חדשה</h2>
-
-          <div className="record-zone">
-            <div className={`record-orb ${status === "paused" ? "paused" : ""}`}>
-              <span className="record-duration">{formatRecordingDuration(elapsedSeconds)}</span>
-              <span className="record-state">{getRecordingStatusLabel(status)}</span>
+      <div className="workspace-grid">
+        <section className="recorder-panel" aria-labelledby="recording-title">
+          <div className="record-stage">
+            <div className="record-heading">
+              <p className="eyebrow">התחלה מהירה</p>
+              <h2 id="recording-title">דבר עכשיו, ערוך רגע לפני השמירה</h2>
             </div>
 
-            <div className="record-actions" aria-label="פעולות הקלטה">
+            <div className={`record-core ${isRecording ? "is-live" : ""}`}>
+              <div className="timer-stack">
+                <span className="record-duration">{formatRecordingDuration(elapsedSeconds)}</span>
+                <span className="record-state">
+                  {isRecording ? <span className="record-dot" aria-hidden="true" /> : null}
+                  {getRecordingStatusLabel(status)}
+                </span>
+              </div>
+
               <button
-                className={`record-button ${
+                className={`mic-button ${
                   primaryRecordingAction.action === "pause" ? "stop" : ""
                 }`}
                 type="button"
                 onClick={handlePrimaryRecordingAction}
                 disabled={status === "transcribing" || status === "saving"}
+                aria-label={primaryRecordingAction.label}
               >
-                {primaryRecordingAction.label}
+                <MicIcon />
+                <span>{primaryRecordingAction.label}</span>
               </button>
+
+              <div className="waveform" aria-hidden="true">
+                {WAVE_LEVELS.map((level, index) => (
+                  <span
+                    className={index < 23 ? "wave active" : "wave"}
+                    key={`${level}-${index}`}
+                    style={{ "--level": `${level}%` } as React.CSSProperties}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="record-actions" aria-label="פעולות הקלטה">
               {hasActiveRecording ? (
                 <>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={finishRecording}
-                  >
+                  <button className="secondary-button icon-button" type="button" onClick={finishRecording}>
+                    <CheckIcon />
                     סיים ותמלל
                   </button>
                   <button
-                    className="danger-button subtle"
+                    className="danger-button subtle icon-button"
                     type="button"
                     onClick={startOverRecording}
                   >
+                    <TrashIcon />
                     התחל מההתחלה
                   </button>
                 </>
-              ) : null}
+              ) : (
+                <span className="record-help">{message}</span>
+              )}
             </div>
-            <p className="record-help">{message}</p>
+
+            {hasActiveRecording ? <p className="record-help">{message}</p> : null}
+            {error ? <p className="message error">{error}</p> : null}
           </div>
 
-          {error ? <p className="message error">{error}</p> : null}
+          <div className="draft-panel">
+            <div className="draft-head">
+              <div>
+                <p className="eyebrow">טיוטה</p>
+                <h2>פרטי הפתק</h2>
+              </div>
+              <span className="type-chip">{NOTE_TYPE_LABELS[type]}</span>
+            </div>
 
-          <div className="field-grid">
-            <label className="field">
-              <span>סוג פתק</span>
-              <select value={type} onChange={(event) => setType(event.target.value as NoteType)}>
-                {NOTE_TYPES.map((noteType) => (
-                  <option key={noteType} value={noteType}>
-                    {NOTE_TYPE_LABELS[noteType]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="field-grid">
+              <label className="field">
+                <span>סוג פתק</span>
+                <select value={type} onChange={(event) => setType(event.target.value as NoteType)}>
+                  {NOTE_TYPES.map((noteType) => (
+                    <option key={noteType} value={noteType}>
+                      {NOTE_TYPE_LABELS[noteType]}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="field">
-              <span>כותרת</span>
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="לא חובה"
-              />
-            </label>
+              <label className="field">
+                <span>כותרת</span>
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="לא חובה"
+                />
+              </label>
 
-            <label className="field">
-              <span>תמלול</span>
-              <textarea
-                value={transcript}
-                onChange={(event) => setTranscript(event.target.value)}
-                placeholder="התמלול יופיע כאן, ואפשר גם להקליד ידנית."
-              />
-            </label>
+              <label className="field full">
+                <span>תמלול</span>
+                <textarea
+                  value={transcript}
+                  onChange={(event) => setTranscript(event.target.value)}
+                  placeholder="התמלול יופיע כאן, ואפשר גם להקליד ידנית."
+                />
+              </label>
 
-            <label className="field">
-              <span>תגיות</span>
-              <input
-                value={tags}
-                onChange={(event) => setTags(event.target.value)}
-                placeholder="למשל: עבודה, חלום, ערב"
-              />
-            </label>
+              <label className="field full">
+                <span>תגיות</span>
+                <input
+                  value={tags}
+                  onChange={(event) => setTags(event.target.value)}
+                  placeholder="למשל: עבודה, חלום, ערב"
+                />
+              </label>
 
-            <div className="button-row">
-              <button
-                className="primary-button"
-                type="button"
-                onClick={saveNote}
-                disabled={status === "saving" || !transcript.trim()}
-              >
-                שמור
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={resetDraft}
-                disabled={hasActiveRecording}
-              >
-                נקה
-              </button>
+              <div className="button-row full">
+                <button
+                  className="primary-button icon-button"
+                  type="button"
+                  onClick={saveNote}
+                  disabled={status === "saving" || !transcript.trim()}
+                >
+                  <CheckIcon />
+                  שמור יומן
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={resetDraft}
+                  disabled={hasActiveRecording}
+                >
+                  נקה טיוטה
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="archive-panel" aria-labelledby="archive-title">
-          <div className="panel">
+          <div className="archive-shell">
             <div className="archive-header">
-              <h2 id="archive-title">כל הפתקים</h2>
-              <span className="status-pill">{notes.length} פתקים</span>
+              <div>
+                <p className="eyebrow">ארכיון</p>
+                <h2 id="archive-title">היומנים שלי</h2>
+              </div>
+              <div className="archive-actions">
+                <span className="status-pill">{notes.length} פתקים</span>
+                <a
+                  className="secondary-button icon-button export-link"
+                  href="/api/export"
+                >
+                  <DownloadIcon />
+                  ייצא הכל
+                </a>
+              </div>
             </div>
+
+            <div className="stats-row" aria-label="סיכום פתקים">
+              <span>
+                <strong>{todayNoteCount}</strong>
+                היום
+              </span>
+              <span>
+                <strong>{groupedNotes.length}</strong>
+                קטגוריות
+              </span>
+            </div>
+
             <div className="search-row">
-              <input
-                aria-label="חיפוש"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="חיפוש בתמלול"
-              />
-              <select
-                aria-label="סינון לפי סוג"
-                value={filterType}
-                onChange={(event) => setFilterType(event.target.value as NoteType | "all")}
-              >
-                <option value="all">כל הסוגים</option>
-                {NOTE_TYPES.map((noteType) => (
-                  <option key={noteType} value={noteType}>
-                    {NOTE_TYPE_LABELS[noteType]}
-                  </option>
-                ))}
-              </select>
+              <label className="search-box">
+                <SearchIcon />
+                <input
+                  aria-label="חיפוש"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="חפש ביומנים..."
+                />
+              </label>
             </div>
-          </div>
 
-          <div className="notes-list">
-            {notes.length === 0 ? (
-              <p className="panel empty-text">אין פתקים שמורים עדיין.</p>
-            ) : (
-              groupedNotes.map((group) => (
-                <section className="note-group" key={group.type}>
-                  <div className="note-group-head">
-                    <h3>{NOTE_TYPE_LABELS[group.type]}</h3>
-                    <span>{group.notes.length}</span>
-                  </div>
-                  {group.notes.map((note) => {
-                    const listTitle = getNoteListTitle(note);
+            <div className="filter-chips" aria-label="סינון לפי סוג">
+              <button
+                className={filterType === "all" ? "filter-chip active" : "filter-chip"}
+                type="button"
+                onClick={() => setFilterType("all")}
+              >
+                הכל
+              </button>
+              {NOTE_TYPES.map((noteType) => (
+                <button
+                  className={filterType === noteType ? "filter-chip active" : "filter-chip"}
+                  key={noteType}
+                  type="button"
+                  onClick={() => setFilterType(noteType)}
+                >
+                  {NOTE_TYPE_LABELS[noteType]}
+                </button>
+              ))}
+            </div>
 
-                    return (
-                      <article className="note-card" key={note.id}>
-                        <button
-                          className="copy-icon-button"
-                          type="button"
-                          onClick={() => void copyNote(note)}
-                          aria-label="העתק פתק"
-                          title="העתק"
-                        >
-                          <CopyIcon />
-                        </button>
-                        <div className="note-meta">
-                          <span className="type-chip">{NOTE_TYPE_LABELS[note.type]}</span>
-                          <time dateTime={note.createdAt}>{formatDate(note.createdAt)}</time>
-                        </div>
-                        {listTitle ? <h4 className="note-title">{listTitle}</h4> : null}
-                        {shouldShowTranscriptPreview(note.type) ? (
-                          <p className="note-preview">{previewTranscript(note.transcript)}</p>
-                        ) : null}
-                        <div className="note-actions">
+            <div className="notes-list">
+              {notes.length === 0 ? (
+                <div className="empty-state">
+                  <span className="empty-icon" aria-hidden="true">
+                    <MicIcon />
+                  </span>
+                  <p>אין פתקים שמורים עדיין.</p>
+                  <small>הקלטה ראשונה תופיע כאן עם חיפוש, סינון ופעולות מהירות.</small>
+                </div>
+              ) : (
+                groupedNotes.map((group) => (
+                  <section className="note-group" key={group.type}>
+                    <div className="note-group-head">
+                      <h3>{NOTE_TYPE_LABELS[group.type]}</h3>
+                      <span>{group.notes.length}</span>
+                    </div>
+                    {group.notes.map((note) => {
+                      const listTitle = getNoteListTitle(note);
+
+                      return (
+                        <article className="note-card" key={note.id}>
+                          <div className="note-topline">
+                            <span className="type-chip">{NOTE_TYPE_LABELS[note.type]}</span>
+                            <time dateTime={note.createdAt}>{formatDate(note.createdAt)}</time>
+                          </div>
                           <button
-                            className="secondary-button compact"
+                            className="note-main"
                             type="button"
                             onClick={() => {
                               setSelectedNote(note);
                               setEditingNote(null);
                             }}
                           >
-                            פתח פתק
+                            <h4 className="note-title">
+                              {listTitle || "ללא שם"}
+                            </h4>
                           </button>
-                          <button
-                            className="secondary-button compact"
-                            type="button"
-                            onClick={() => {
-                              setSelectedNote(note);
-                              setEditingNote(note);
-                            }}
-                          >
-                            ערוך
-                          </button>
-                          <button
-                            className="danger-button subtle compact"
-                            type="button"
-                            onClick={() => void deleteNoteById(note.id)}
-                          >
-                            מחק
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </section>
-              ))
-            )}
+                          <div className="note-actions">
+                            <button
+                              className="round-button"
+                              type="button"
+                              onClick={() => {
+                                setSelectedNote(note);
+                                setEditingNote(null);
+                              }}
+                              aria-label="פתח פתק"
+                              title="פתח"
+                            >
+                              <OpenNoteIcon />
+                            </button>
+                            <button
+                              className="round-button"
+                              type="button"
+                              onClick={() => void copyNote(note)}
+                              aria-label="העתק פתק"
+                              title="העתק"
+                            >
+                              <CopyIcon />
+                            </button>
+                            <button
+                              className="round-button"
+                              type="button"
+                              onClick={() => {
+                                setSelectedNote(note);
+                                setEditingNote(note);
+                              }}
+                              aria-label="ערוך פתק"
+                              title="ערוך"
+                            >
+                              <EditIcon />
+                            </button>
+                            <button
+                              className="round-button danger"
+                              type="button"
+                              onClick={() => void deleteNoteById(note.id)}
+                              aria-label="מחק פתק"
+                              title="מחק"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </section>
+                ))
+              )}
+            </div>
           </div>
 
           {selectedNote ? (
             <aside className="detail-panel" aria-label="פרטי פתק">
-              <button
-                className="copy-icon-button detail-copy"
-                type="button"
-                onClick={() => void copyNote(selectedNote)}
-                aria-label="העתק פתק"
-                title="העתק"
-              >
-                <CopyIcon />
-              </button>
               <div className="detail-head">
                 <div>
-                  <p className="note-meta">
+                  <p className="note-topline">
                     <span className="type-chip">{NOTE_TYPE_LABELS[selectedNote.type]}</span>
                     <time dateTime={selectedNote.createdAt}>
                       {formatDate(selectedNote.createdAt)}
@@ -593,16 +697,27 @@ export function VoiceJournalApp() {
                   </p>
                   <h3 className="detail-title">{selectedSummary}</h3>
                 </div>
-                <button
-                  className="text-button"
-                  type="button"
-                  onClick={() => {
-                    setSelectedNote(null);
-                    setEditingNote(null);
-                  }}
-                >
-                  סגור
-                </button>
+                <div className="detail-actions">
+                  <button
+                    className="round-button"
+                    type="button"
+                    onClick={() => void copyNote(selectedNote)}
+                    aria-label="העתק פתק"
+                    title="העתק"
+                  >
+                    <CopyIcon />
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => {
+                      setSelectedNote(null);
+                      setEditingNote(null);
+                    }}
+                  >
+                    סגור
+                  </button>
+                </div>
               </div>
 
               {editingNote ? (
@@ -626,13 +741,15 @@ export function VoiceJournalApp() {
                   ) : null}
                   <div className="button-row">
                     <button
-                      className="secondary-button"
+                      className="secondary-button icon-button"
                       type="button"
                       onClick={() => setEditingNote(selectedNote)}
                     >
+                      <EditIcon />
                       ערוך
                     </button>
-                    <button className="danger-button" type="button" onClick={deleteSelectedNote}>
+                    <button className="danger-button icon-button" type="button" onClick={deleteSelectedNote}>
+                      <TrashIcon />
                       מחק
                     </button>
                   </div>
@@ -658,7 +775,7 @@ function EditNoteForm({
   onSave: () => void;
 }) {
   return (
-    <div className="field-grid">
+    <div className="field-grid compact-form">
       <label className="field">
         <span>סוג פתק</span>
         <select
@@ -681,14 +798,14 @@ function EditNoteForm({
           onChange={(event) => onChange({ ...note, title: event.target.value })}
         />
       </label>
-      <label className="field">
+      <label className="field full">
         <span>תמלול</span>
         <textarea
           value={note.transcript}
           onChange={(event) => onChange({ ...note, transcript: event.target.value })}
         />
       </label>
-      <label className="field">
+      <label className="field full">
         <span>תגיות</span>
         <input
           value={note.tags.join(", ")}
@@ -703,8 +820,9 @@ function EditNoteForm({
           }
         />
       </label>
-      <div className="button-row">
-        <button className="primary-button" type="button" onClick={onSave}>
+      <div className="button-row full">
+        <button className="primary-button icon-button" type="button" onClick={onSave}>
+          <CheckIcon />
           שמור שינויים
         </button>
         <button className="secondary-button" type="button" onClick={onCancel}>
@@ -715,10 +833,17 @@ function EditNoteForm({
   );
 }
 
-function CopyIcon() {
+function IconSvg({
+  children,
+  className
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <svg
       aria-hidden="true"
+      className={className}
       width="18"
       height="18"
       viewBox="0 0 24 24"
@@ -728,9 +853,98 @@ function CopyIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      {children}
+    </svg>
+  );
+}
+
+function WaveMarkIcon() {
+  return (
+    <IconSvg className="brand-wave">
+      <path d="M4 10v4" />
+      <path d="M8 6v12" />
+      <path d="M12 3v18" />
+      <path d="M16 7v10" />
+      <path d="M20 11v2" />
+    </IconSvg>
+  );
+}
+
+function MicIcon() {
+  return (
+    <IconSvg>
+      <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <path d="M12 19v3" />
+    </IconSvg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <IconSvg>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.2-3.2" />
+    </IconSvg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <IconSvg>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </IconSvg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <IconSvg>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </IconSvg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <IconSvg>
+      <path d="M20 6 9 17l-5-5" />
+    </IconSvg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <IconSvg>
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </IconSvg>
+  );
+}
+
+function OpenNoteIcon() {
+  return (
+    <IconSvg>
+      <path d="M7 3h7l5 5v13H7Z" />
+      <path d="M14 3v6h5" />
+      <path d="M10 13h6" />
+      <path d="M10 17h4" />
+    </IconSvg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <IconSvg>
       <rect x="8" y="8" width="12" height="12" rx="2" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-    </svg>
+    </IconSvg>
   );
 }
 
@@ -740,20 +954,11 @@ function pickMimeType() {
   }
 
   const options = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
-  return options.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+  return options.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? "";
 }
 
 function noteHeading(note: VoiceNote) {
-  return note.title?.trim() || firstLine(note.transcript) || "פתק ללא כותרת";
-}
-
-function firstLine(value: string) {
-  return value.split(/\r?\n/).find(Boolean)?.trim() ?? "";
-}
-
-function previewTranscript(value: string) {
-  const clean = value.replace(/\s+/g, " ").trim();
-  return clean.length > 120 ? `${clean.slice(0, 120)}...` : clean;
+  return note.title?.trim() || "ללא שם";
 }
 
 function formatDate(value: string) {

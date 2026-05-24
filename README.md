@@ -2,7 +2,7 @@
 
 Voice Journal is a small Hebrew-first private voice notebook. You can record a thought, dream, reminder, idea, or journal entry in the browser, transcribe it, edit the text, and save it into a searchable archive.
 
-The app is installable on Android as a PWA. It can run locally with file storage, or on Netlify with Netlify Blobs storage.
+The app is installable on Android as a PWA. It can run locally with file storage, or on Vercel with Supabase Postgres storage.
 
 ## Stack
 
@@ -11,7 +11,7 @@ The app is installable on Android as a PWA. It can run locally with file storage
 - Browser `MediaRecorder` for microphone recording
 - OpenAI-compatible audio transcription endpoint
 - Local JSON file storage under `app-storage/` in development
-- Netlify Blobs storage for deployed notes on Netlify
+- Supabase Postgres storage for deployed notes on Vercel
 
 ## Setup
 
@@ -34,7 +34,9 @@ Copy-Item .env.example .env
 - `OPENAI_API_KEY`: optional. When set, `/api/transcribe` sends recordings to OpenAI for Hebrew transcription.
 - `OPENAI_TRANSCRIPTION_MODEL`: optional. Defaults to `gpt-4o-mini-transcribe`.
 - `VOICE_JOURNAL_DATA_DIR`: optional. Defaults to `app-storage`.
-- `VOICE_JOURNAL_STORAGE`: optional. Use `filesystem` locally or `netlify-blobs` to force Netlify Blobs storage. On Netlify, Blobs storage is selected automatically.
+- `VOICE_JOURNAL_STORAGE`: optional. Use `filesystem` locally or `supabase` in deployment.
+- `SUPABASE_URL`: required when `VOICE_JOURNAL_STORAGE=supabase`.
+- `SUPABASE_SECRET_KEY`: required for Vercel/Supabase deployment. Use a server-only Supabase secret key (`sb_secret_...`) or the legacy `service_role` key via `SUPABASE_SERVICE_ROLE_KEY`.
 - `VOICE_JOURNAL_BASIC_AUTH_USER`: optional. When set together with `VOICE_JOURNAL_BASIC_AUTH_PASSWORD`, protects the app with HTTP Basic Auth.
 - `VOICE_JOURNAL_BASIC_AUTH_PASSWORD`: optional. Use this on public deployments so the journal is not open to anyone with the URL.
 
@@ -42,22 +44,53 @@ If `OPENAI_API_KEY` is not configured, the app stays usable: after recording, it
 
 ## Android Install
 
-After deployment over HTTPS, open the Netlify URL in Chrome on Android and choose **Install app** or **Add to Home screen** from the browser menu. The app uses standalone display mode and caches the shell for a native-app-like launch.
+After deployment over HTTPS, open the Vercel URL in Chrome on Android and choose **Install app** or **Add to Home screen** from the browser menu. The app uses standalone display mode and caches the shell for a native-app-like launch.
 
-## Netlify Deploy
+## Supabase Setup
 
-The project includes `netlify.toml` with `npm run build` and Node 22. Netlify's current Next.js support uses the OpenNext adapter automatically, so the project does not pin `@netlify/plugin-nextjs`.
+Create a Supabase project, open the SQL editor, and run:
 
-Set these environment variables in Netlify:
+```sql
+create table if not exists public.voice_notes (
+  id uuid primary key,
+  created_at timestamptz not null,
+  updated_at timestamptz not null,
+  type text not null check (
+    type in ('dream', 'idea', 'reminder', 'thought', 'journal', 'other')
+  ),
+  transcript text not null,
+  title text,
+  tags text[] not null default '{}'
+);
+
+create index if not exists voice_notes_created_at_idx
+  on public.voice_notes (created_at desc);
+
+create index if not exists voice_notes_type_idx
+  on public.voice_notes (type);
+
+alter table public.voice_notes enable row level security;
+```
+
+The same schema is available at `supabase/schema.sql`.
+
+## Vercel Deploy
+
+The project includes `vercel.json` for the PWA headers. Vercel detects Next.js automatically and runs `npm run build`.
+
+Set these environment variables in Vercel:
 
 ```text
 OPENAI_API_KEY=...
 OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+VOICE_JOURNAL_STORAGE=supabase
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
 VOICE_JOURNAL_BASIC_AUTH_USER=...
 VOICE_JOURNAL_BASIC_AUTH_PASSWORD=...
 ```
 
-Netlify automatically provides the Blobs runtime. Notes are stored in the site-scoped `voice-journal` store.
+Do not expose the Supabase server key with a `NEXT_PUBLIC_` prefix. The app only uses it from server-side Next.js API routes.
 
 ## Commands
 
@@ -70,7 +103,7 @@ npm run build
 
 ## Privacy Notes
 
-- Transcript content is stored locally in `app-storage/notes.json` in development, and in Netlify Blobs after deployment.
+- Transcript content is stored locally in `app-storage/notes.json` in development, and in Supabase Postgres after deployment.
 - Recordings are used only temporarily for transcription and are not saved by the app.
 - API keys must stay in `.env`; do not commit secrets.
 - The server does not intentionally log transcript or audio content.
@@ -78,7 +111,7 @@ npm run build
 
 ## Storage Tradeoff
 
-Local development uses JSON file storage instead of SQLite to keep the MVP small and easy to inspect. Netlify deployment uses Netlify Blobs because serverless filesystems are not persistent application storage.
+Local development uses JSON file storage instead of SQLite to keep the MVP small and easy to inspect. Vercel deployment uses Supabase Postgres because serverless filesystems are not persistent application storage.
 
 The note model and API routes are isolated in `src/lib/notes.ts` and `src/app/api/*`, so a later migration to SQLite, Postgres, or another store can preserve the UI and API shape.
 

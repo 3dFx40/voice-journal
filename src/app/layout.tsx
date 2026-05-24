@@ -3,14 +3,14 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "פנקס קולי",
-  description: "פנקס קולי פרטי לתמלול ושמירת פתקים בעברית",
-  applicationName: "פנקס קולי",
+  title: "יומן קולי",
+  description: "יומן קולי פרטי לתמלול ושמירת פתקים בעברית",
+  applicationName: "יומן קולי",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "פנקס קולי"
+    title: "יומן קולי"
   },
   icons: {
     icon: [
@@ -25,7 +25,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#216b63"
+  themeColor: "#5a8b6c"
 };
 
 export default function RootLayout({

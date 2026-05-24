@@ -1,15 +1,15 @@
 {
-  "name": "פנקס קולי",
-  "short_name": "פנקס קולי",
-  "description": "פנקס קולי פרטי לתמלול ושמירת פתקים בעברית",
+  "name": "יומן קולי",
+  "short_name": "יומן קולי",
+  "description": "יומן קולי פרטי לתמלול ושמירת פתקים בעברית",
   "lang": "he",
   "dir": "rtl",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f7f5ef",
-  "theme_color": "#216b63",
+  "background_color": "#f6f2ea",
+  "theme_color": "#5a8b6c",
   "categories": ["productivity", "utilities"],
   "icons": [
     {

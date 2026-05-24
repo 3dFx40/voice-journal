@@ -8,12 +8,22 @@ export type RecordingStatus =
 
 export type RecordingPrimaryAction = "start" | "pause" | "resume";
 
+export function getResetRecordingDraftState() {
+  return {
+    transcript: "",
+    title: "",
+    tags: "",
+    type: "thought" as const,
+    elapsedSeconds: 0
+  };
+}
+
 export function getRecordingPrimaryAction(status: RecordingStatus): {
   label: string;
   action: RecordingPrimaryAction;
 } {
   if (status === "recording") {
-    return { label: "עצור", action: "pause" };
+    return { label: "השהה", action: "pause" };
   }
 
   if (status === "paused") {

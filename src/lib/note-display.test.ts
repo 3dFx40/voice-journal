@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getCopyableNoteText,
-  getNoteListTitle,
-  shouldShowTranscriptPreview
+  getExportedNotesText,
+  getNoteListTitle
 } from "./note-display";
 
 describe("note display helpers", () => {
@@ -24,15 +24,6 @@ describe("note display helpers", () => {
     ).toBe("");
   });
 
-  it("shows transcript previews only for journal and reminder notes", () => {
-    expect(shouldShowTranscriptPreview("journal")).toBe(true);
-    expect(shouldShowTranscriptPreview("reminder")).toBe(true);
-    expect(shouldShowTranscriptPreview("dream")).toBe(false);
-    expect(shouldShowTranscriptPreview("idea")).toBe(false);
-    expect(shouldShowTranscriptPreview("thought")).toBe(false);
-    expect(shouldShowTranscriptPreview("other")).toBe(false);
-  });
-
   it("copies title, type, tags and full transcript", () => {
     expect(
       getCopyableNoteText({
@@ -42,5 +33,54 @@ describe("note display helpers", () => {
         transcript: "להתקשר מחר בבוקר"
       })
     ).toBe("פגישה עם דנה\nסוג: תזכורת\nתגיות: עבודה, חשוב\n\nלהתקשר מחר בבוקר");
+  });
+
+  it("exports all notes as readable text", () => {
+    expect(
+      getExportedNotesText(
+        [
+          {
+            createdAt: "2026-05-24T10:00:00.000Z",
+            updatedAt: "2026-05-24T10:01:00.000Z",
+            type: "idea",
+            title: "רעיון חדש",
+            tags: ["עבודה"],
+            transcript: "לבנות כפתור ייצוא"
+          }
+        ],
+        "2026-05-24T10:02:00.000Z"
+      )
+    ).toBe(
+      [
+        "יומן קולי - ייצוא מלא",
+        "נוצר בתאריך: 2026-05-24T10:02:00.000Z",
+        "מספר פתקים: 1",
+        "",
+        "---",
+        "1. רעיון חדש",
+        "סוג: רעיון",
+        "נוצר: 2026-05-24T10:00:00.000Z",
+        "עודכן: 2026-05-24T10:01:00.000Z",
+        "תגיות: עבודה",
+        "",
+        "תוכן:",
+        "לבנות כפתור ייצוא"
+      ].join("\n")
+    );
+  });
+
+  it("exports untitled notes without using transcript as the title", () => {
+    expect(
+      getExportedNotesText(
+        [
+          {
+            createdAt: "2026-05-24T10:00:00.000Z",
+            type: "thought",
+            transcript: "התמלול הזה לא אמור להפוך לכותרת"
+          }
+        ],
+        "2026-05-24T10:02:00.000Z"
+      )
+    ).toContain("1. ללא שם\nסוג: מחשבה");
   });
 });
