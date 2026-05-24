@@ -1,21 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
+type EdgeContext = {
+  next: () => Promise<Response>;
+};
 
-export function proxy(request: NextRequest) {
-  const username = process.env.VOICE_JOURNAL_BASIC_AUTH_USER;
-  const password = process.env.VOICE_JOURNAL_BASIC_AUTH_PASSWORD;
+declare const Netlify: {
+  env: {
+    get: (key: string) => string | undefined;
+  };
+};
+
+export default async function basicAuth(request: Request, context: EdgeContext) {
+  const username = Netlify.env.get("VOICE_JOURNAL_BASIC_AUTH_USER");
+  const password = Netlify.env.get("VOICE_JOURNAL_BASIC_AUTH_PASSWORD");
 
   if (!username || !password) {
-    return NextResponse.next();
+    return context.next();
   }
 
-  const authorization = request.headers.get("authorization");
-  const credentials = parseBasicAuth(authorization);
+  const credentials = parseBasicAuth(request.headers.get("authorization"));
 
   if (credentials?.username === username && credentials.password === password) {
-    return NextResponse.next();
+    return context.next();
   }
 
-  return new NextResponse("Authentication required", {
+  return new Response("Authentication required", {
     status: 401,
     headers: {
       "WWW-Authenticate": 'Basic realm="Voice Journal", charset="UTF-8"'
@@ -24,9 +31,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|manifest.webmanifest|sw.js|icons|favicon.ico).*)"
-  ]
+  path: "/*"
 };
 
 function parseBasicAuth(authorization: string | null) {

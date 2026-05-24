@@ -16,3 +16,7 @@ for = "/manifest.webmanifest"
 
 [headers.values]
 Cache-Control = "public, max-age=0, must-revalidate"
+
+[[edge_functions]]
+path = "/*"
+function = "basic-auth"
