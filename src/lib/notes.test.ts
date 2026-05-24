@@ -28,8 +28,7 @@ describe("notes storage", () => {
         type: "dream",
         transcript: "חלמתי על גשם בירושלים",
         title: "חלום גשם",
-        tags: ["חלום", "גשם"],
-        keepAudio: false
+        tags: ["חלום", "גשם"]
       },
       dataDir
     );
@@ -48,16 +47,14 @@ describe("notes storage", () => {
     await createNote(
       {
         type: "idea",
-        transcript: "רעיון לאפליקציה קטנה",
-        keepAudio: false
+        transcript: "רעיון לאפליקציה קטנה"
       },
       dataDir
     );
     await createNote(
       {
         type: "reminder",
-        transcript: "לקנות חלב בדרך הביתה",
-        keepAudio: false
+        transcript: "לקנות חלב בדרך הביתה"
       },
       dataDir
     );
@@ -75,8 +72,7 @@ describe("notes storage", () => {
     const note = await createNote(
       {
         type: "thought",
-        transcript: "מחשבה ראשונה",
-        keepAudio: false
+        transcript: "מחשבה ראשונה"
       },
       dataDir
     );
@@ -97,5 +93,18 @@ describe("notes storage", () => {
 
     await expect(deleteNote(note.id, dataDir)).resolves.toBe(true);
     await expect(getNote(note.id, dataDir)).resolves.toBeNull();
+  });
+
+  it("stores notes as text only", async () => {
+    const note = await createNote(
+      {
+        type: "thought",
+        transcript: "פתק בלי שמירת הקלטה"
+      },
+      dataDir
+    );
+
+    expect(note).not.toHaveProperty("audioPath");
+    expect(note).not.toHaveProperty("keepAudio");
   });
 });

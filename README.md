@@ -11,7 +11,7 @@ The app is installable on Android as a PWA. It can run locally with file storage
 - Browser `MediaRecorder` for microphone recording
 - OpenAI-compatible audio transcription endpoint
 - Local JSON file storage under `app-storage/` in development
-- Netlify Blobs storage for deployed notes and saved audio on Netlify
+- Netlify Blobs storage for deployed notes on Netlify
 
 ## Setup
 
@@ -57,7 +57,7 @@ VOICE_JOURNAL_BASIC_AUTH_USER=...
 VOICE_JOURNAL_BASIC_AUTH_PASSWORD=...
 ```
 
-Netlify automatically provides the Blobs runtime. Notes are stored in the site-scoped `voice-journal` store, and saved audio is stored under `uploads/`.
+Netlify automatically provides the Blobs runtime. Notes are stored in the site-scoped `voice-journal` store.
 
 ## Commands
 
@@ -71,8 +71,7 @@ npm run build
 ## Privacy Notes
 
 - Transcript content is stored locally in `app-storage/notes.json` in development, and in Netlify Blobs after deployment.
-- Audio is only saved if you check "לשמור גם את קובץ האודיו".
-- Audio files are stored locally under `app-storage/uploads/` in development, and in Netlify Blobs after deployment.
+- Recordings are used only temporarily for transcription and are not saved by the app.
 - API keys must stay in `.env`; do not commit secrets.
 - The server does not intentionally log transcript or audio content.
 - A public deploy should set `VOICE_JOURNAL_BASIC_AUTH_USER` and `VOICE_JOURNAL_BASIC_AUTH_PASSWORD`.
@@ -88,7 +87,7 @@ The note model and API routes are isolated in `src/lib/notes.ts` and `src/app/ap
 - No user accounts or multi-user isolation.
 - No Google Drive sync.
 - Search is basic text matching, not semantic search.
-- Audio files are not deleted from storage when deleting a note in this MVP.
+- Saved notes contain text and metadata only, not recording files.
 - Browser recording support depends on `MediaRecorder` availability and microphone permissions.
 
 ## Later: Google Drive
@@ -97,7 +96,6 @@ Do not implement in this MVP, but the future export/sync shape should support:
 
 ```text
 Voice Journal/
-  Audio/
   Transcripts/
   Dreams/
   Ideas/
@@ -107,8 +105,7 @@ Voice Journal/
 Future Drive work:
 
 - Export saved notes to Google Drive.
-- Upload saved audio files.
-- Create per-type folders for transcripts and audio.
+- Create per-type folders for transcripts.
 - Add conflict handling and explicit user-controlled sync.
 
 ## Later: AI Features

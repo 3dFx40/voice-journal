@@ -31,10 +31,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       type: body.type,
       transcript: body.transcript === undefined ? undefined : String(body.transcript),
       title: optionalString(body.title),
-      tags: Array.isArray(body.tags) ? body.tags.map(String) : parseTags(body.tags),
-      audioPath: optionalString(body.audioPath),
-      keepAudio:
-        body.keepAudio === undefined ? undefined : Boolean(body.keepAudio)
+      tags: Array.isArray(body.tags) ? body.tags.map(String) : parseTags(body.tags)
     });
 
     if (!note) {

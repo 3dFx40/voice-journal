@@ -22,8 +22,6 @@ type VoiceNote = {
   transcript: string;
   title?: string;
   tags: string[];
-  audioPath?: string;
-  keepAudio: boolean;
 };
 
 export function VoiceJournalApp() {
@@ -38,9 +36,6 @@ export function VoiceJournalApp() {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState("");
   const [type, setType] = useState<NoteType>("thought");
-  const [keepAudio, setKeepAudio] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<NoteType | "all">("all");
@@ -77,14 +72,6 @@ export function VoiceJournalApp() {
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, [audioUrl]);
 
   useEffect(() => {
     if (status !== "recording") {
@@ -147,13 +134,6 @@ export function VoiceJournalApp() {
 
         const blob = new Blob(chunksRef.current, {
           type: recorder.mimeType || "audio/webm"
-        });
-        setAudioBlob(blob);
-        setAudioUrl((previous) => {
-          if (previous) {
-            URL.revokeObjectURL(previous);
-          }
-          return URL.createObjectURL(blob);
         });
         stopCurrentStream();
         mediaRecorderRef.current = null;
@@ -269,7 +249,6 @@ export function VoiceJournalApp() {
     setError("");
 
     try {
-      const audioPath = keepAudio && audioBlob ? await uploadAudio(audioBlob) : undefined;
       const response = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -277,9 +256,7 @@ export function VoiceJournalApp() {
           type,
           transcript,
           title,
-          tags,
-          keepAudio,
-          audioPath
+          tags
         })
       });
 
@@ -309,9 +286,7 @@ export function VoiceJournalApp() {
         type: editingNote.type,
         title: editingNote.title ?? "",
         tags: editingNote.tags,
-        transcript: editingNote.transcript,
-        keepAudio: editingNote.keepAudio,
-        audioPath: editingNote.audioPath
+        transcript: editingNote.transcript
       })
     });
 
@@ -371,14 +346,6 @@ export function VoiceJournalApp() {
     setTitle("");
     setTags("");
     setType("thought");
-    setKeepAudio(false);
-    setAudioBlob(null);
-    setAudioUrl((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous);
-      }
-      return "";
-    });
   }
 
   function stopCurrentStream() {
@@ -448,13 +415,6 @@ export function VoiceJournalApp() {
 
           {error ? <p className="message error">{error}</p> : null}
 
-          {audioUrl ? (
-            <div className="audio-preview">
-              <strong>תצוגה מקדימה</strong>
-              <audio controls src={audioUrl} />
-            </div>
-          ) : null}
-
           <div className="field-grid">
             <label className="field">
               <span>סוג פתק</span>
@@ -492,16 +452,6 @@ export function VoiceJournalApp() {
                 onChange={(event) => setTags(event.target.value)}
                 placeholder="למשל: עבודה, חלום, ערב"
               />
-            </label>
-
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={keepAudio}
-                onChange={(event) => setKeepAudio(event.target.checked)}
-                disabled={!audioBlob}
-              />
-              לשמור גם את קובץ האודיו
             </label>
 
             <div className="button-row">
@@ -674,12 +624,6 @@ export function VoiceJournalApp() {
                       ))}
                     </div>
                   ) : null}
-                  {selectedNote.audioPath ? (
-                    <div className="audio-preview">
-                      <strong>אודיו שמור</strong>
-                      <audio controls src={selectedNote.audioPath} />
-                    </div>
-                  ) : null}
                   <div className="button-row">
                     <button
                       className="secondary-button"
@@ -788,23 +732,6 @@ function CopyIcon() {
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
     </svg>
   );
-}
-
-async function uploadAudio(blob: Blob) {
-  const formData = new FormData();
-  formData.set("audio", blob, "recording.webm");
-
-  const response = await fetch("/api/upload-audio", {
-    method: "POST",
-    body: formData
-  });
-
-  if (!response.ok) {
-    throw new Error("audio upload failed");
-  }
-
-  const data = (await response.json()) as { audioPath: string };
-  return data.audioPath;
 }
 
 function pickMimeType() {

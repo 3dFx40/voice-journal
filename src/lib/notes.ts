@@ -14,8 +14,6 @@ export type VoiceNote = {
   transcript: string;
   title?: string;
   tags: string[];
-  audioPath?: string;
-  keepAudio: boolean;
 };
 
 export type NoteInput = {
@@ -23,12 +21,10 @@ export type NoteInput = {
   transcript: string;
   title?: string;
   tags?: string[];
-  audioPath?: string;
-  keepAudio: boolean;
 };
 
 export type NoteUpdate = Partial<
-  Pick<VoiceNote, "type" | "transcript" | "title" | "tags" | "audioPath" | "keepAudio">
+  Pick<VoiceNote, "type" | "transcript" | "title" | "tags">
 >;
 
 export type NoteFilters = {
@@ -45,33 +41,6 @@ export function shouldUseNetlifyBlobs() {
     process.env.VOICE_JOURNAL_STORAGE === "netlify-blobs" ||
     process.env.NETLIFY === "true"
   );
-}
-
-export async function saveAudioUpload(filename: string, bytes: Buffer) {
-  if (shouldUseNetlifyBlobs()) {
-    await getVoiceJournalStore().set(uploadKey(filename), toArrayBuffer(bytes));
-    return;
-  }
-
-  const uploadDir = join(getDataDir(), "uploads");
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(join(uploadDir, filename), bytes);
-}
-
-export async function readAudioUpload(filename: string) {
-  if (shouldUseNetlifyBlobs()) {
-    return getVoiceJournalStore().get(uploadKey(filename), { type: "arrayBuffer" });
-  }
-
-  try {
-    const file = await readFile(join(getDataDir(), "uploads", filename));
-    return toArrayBuffer(file);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
 }
 
 export async function listNotes(filters: NoteFilters = {}, dataDir = getDataDir()) {
@@ -117,9 +86,7 @@ export async function createNote(input: NoteInput, dataDir = getDataDir()) {
     type: input.type,
     transcript: input.transcript.trim(),
     title: cleanOptional(input.title),
-    tags: normalizeTags(input.tags),
-    audioPath: input.keepAudio ? cleanOptional(input.audioPath) : undefined,
-    keepAudio: input.keepAudio
+    tags: normalizeTags(input.tags)
   };
 
   validateNoteInput(note);
@@ -143,8 +110,6 @@ export async function updateNote(id: string, update: NoteUpdate, dataDir = getDa
     transcript:
       update.transcript === undefined ? previous.transcript : update.transcript.trim(),
     tags: update.tags === undefined ? previous.tags : normalizeTags(update.tags),
-    audioPath:
-      update.audioPath === undefined ? previous.audioPath : cleanOptional(update.audioPath),
     updatedAt: nextTimestamp(previous.updatedAt)
   };
 
@@ -169,13 +134,13 @@ export async function deleteNote(id: string, dataDir = getDataDir()) {
 async function readNotes(dataDir: string): Promise<VoiceNote[]> {
   if (shouldUseNetlifyBlobs()) {
     const notes = await getVoiceJournalStore().get("notes.json", { type: "json" });
-    return Array.isArray(notes) ? (notes as VoiceNote[]) : [];
+    return Array.isArray(notes) ? normalizeStoredNotes(notes) : [];
   }
 
   try {
     const raw = await readFile(notesPath(dataDir), "utf8");
-    const parsed = JSON.parse(raw) as VoiceNote[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as unknown[];
+    return Array.isArray(parsed) ? normalizeStoredNotes(parsed) : [];
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];
@@ -207,19 +172,42 @@ function getVoiceJournalStore() {
   return getStore({ name: "voice-journal", consistency: "strong" });
 }
 
-function uploadKey(filename: string) {
-  return `uploads/${filename}`;
-}
-
-function toArrayBuffer(buffer: Buffer) {
-  return buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength
-  ) as ArrayBuffer;
-}
-
 function notesPath(dataDir: string) {
   return join(dataDir, "notes.json");
+}
+
+function normalizeStoredNotes(notes: unknown[]) {
+  return notes
+    .map((note) => normalizeStoredNote(note))
+    .filter((note): note is VoiceNote => note !== null);
+}
+
+function normalizeStoredNote(note: unknown): VoiceNote | null {
+  if (!note || typeof note !== "object") {
+    return null;
+  }
+
+  const candidate = note as Partial<VoiceNote>;
+
+  if (
+    typeof candidate.id !== "string" ||
+    typeof candidate.createdAt !== "string" ||
+    typeof candidate.updatedAt !== "string" ||
+    !isNoteType(candidate.type) ||
+    typeof candidate.transcript !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: candidate.id,
+    createdAt: candidate.createdAt,
+    updatedAt: candidate.updatedAt,
+    type: candidate.type,
+    transcript: candidate.transcript,
+    title: cleanOptional(candidate.title),
+    tags: normalizeTags(candidate.tags)
+  };
 }
 
 function cleanOptional(value?: string) {

@@ -28,9 +28,7 @@ export async function POST(request: NextRequest) {
       type: body.type,
       transcript: String(body.transcript ?? ""),
       title: optionalString(body.title),
-      tags: Array.isArray(body.tags) ? body.tags.map(String) : parseTags(body.tags),
-      audioPath: optionalString(body.audioPath),
-      keepAudio: Boolean(body.keepAudio)
+      tags: Array.isArray(body.tags) ? body.tags.map(String) : parseTags(body.tags)
     });
 
     return NextResponse.json({ note }, { status: 201 });

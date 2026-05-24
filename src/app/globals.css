@@ -332,15 +332,6 @@ textarea:focus-visible {
   color: var(--accent-strong);
 }
 
-.audio-preview {
-  display: grid;
-  gap: 8px;
-}
-
-.audio-preview audio {
-  width: 100%;
-}
-
 .archive-panel {
   display: grid;
   gap: 14px;
