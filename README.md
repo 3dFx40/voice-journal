@@ -39,6 +39,9 @@ Copy-Item .env.example .env
 - `SUPABASE_SECRET_KEY`: required for Vercel/Supabase deployment. Use a server-only Supabase secret key (`sb_secret_...`) or the legacy `service_role` key via `SUPABASE_SERVICE_ROLE_KEY`.
 - `VOICE_JOURNAL_BASIC_AUTH_USER`: optional. When set together with `VOICE_JOURNAL_BASIC_AUTH_PASSWORD`, protects the app with HTTP Basic Auth.
 - `VOICE_JOURNAL_BASIC_AUTH_PASSWORD`: optional. Use this on public deployments so the journal is not open to anyone with the URL.
+- `HERMES_WEBHOOK_URL`: optional server-side Hermes Agent webhook URL. When set, new notes notify Hermes after they are saved.
+- `HERMES_WEBHOOK_SECRET`: required when `HERMES_WEBHOOK_URL` is set. Used server-side to sign the exact webhook JSON body with HMAC-SHA256.
+- `HERMES_WEBHOOK_ENABLED`: optional. Defaults to enabled when `HERMES_WEBHOOK_URL` exists; set to `false` to disable sending.
 
 If `OPENAI_API_KEY` is not configured, the app stays usable: after recording, it shows a clear manual transcription message and lets you type/edit the text before saving.
 
@@ -88,9 +91,14 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SECRET_KEY=sb_secret_...
 VOICE_JOURNAL_BASIC_AUTH_USER=...
 VOICE_JOURNAL_BASIC_AUTH_PASSWORD=...
+HERMES_WEBHOOK_URL=...
+HERMES_WEBHOOK_SECRET=...
+HERMES_WEBHOOK_ENABLED=true
 ```
 
-Do not expose the Supabase server key with a `NEXT_PUBLIC_` prefix. The app only uses it from server-side Next.js API routes.
+Do not expose the Supabase server key or Hermes webhook values with a `NEXT_PUBLIC_` prefix. The app only uses them from server-side Next.js API routes.
+
+See `docs/hermes-webhook.md` for the Hermes payload, failure behavior, and a curl smoke test.
 
 ## Commands
 

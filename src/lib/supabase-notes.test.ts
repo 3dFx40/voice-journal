@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import crypto from "node:crypto";
 import {
   createNote,
   deleteNote,
@@ -98,6 +99,86 @@ describe("Supabase notes storage", () => {
         })
       })
     );
+  });
+
+  it("notifies Hermes after a note is created in Supabase", async () => {
+    process.env.HERMES_WEBHOOK_URL = "https://hermes.example/webhook";
+    process.env.HERMES_WEBHOOK_SECRET = "secret-value";
+    const row = {
+      id: "11111111-1111-4111-8111-111111111111",
+      created_at: "2026-05-24T12:00:00.000Z",
+      updated_at: "2026-05-24T12:00:00.000Z",
+      type: "idea",
+      transcript: "Hermes payload text",
+      title: "Webhook note",
+      tags: ["product"]
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse([row]))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await createNote({
+      type: "idea",
+      transcript: "Hermes payload text",
+      title: "Webhook note",
+      tags: ["product"]
+    });
+
+    const body = JSON.stringify({
+      event_type: "voice_journal.note_created",
+      noteId: row.id,
+      type: row.type,
+      title: row.title,
+      tags: row.tags,
+      transcript: row.transcript,
+      createdAt: row.created_at
+    });
+    const signature = crypto
+      .createHmac("sha256", "secret-value")
+      .update(body)
+      .digest("hex");
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "https://hermes.example/webhook",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Signature": signature,
+          "X-Request-ID": row.id
+        },
+        body
+      }
+    );
+  });
+
+  it("does not block Supabase note creation when Hermes fails", async () => {
+    process.env.HERMES_WEBHOOK_URL = "https://hermes.example/webhook";
+    process.env.HERMES_WEBHOOK_SECRET = "secret-value";
+    const row = {
+      id: "11111111-1111-4111-8111-111111111111",
+      created_at: "2026-05-24T12:00:00.000Z",
+      updated_at: "2026-05-24T12:00:00.000Z",
+      type: "journal",
+      transcript: "Saved before webhook",
+      title: null,
+      tags: []
+    };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse([row]))
+      .mockRejectedValueOnce(new Error("Hermes unavailable"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      createNote({
+        type: "journal",
+        transcript: "Saved before webhook"
+      })
+    ).resolves.toMatchObject({
+      id: row.id,
+      transcript: row.transcript
+    });
   });
 
   it("lists and filters Supabase notes using the existing search behavior", async () => {

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { sendNoteCreatedToHermes } from "./hermesWebhook";
 import { NOTE_TYPE_LABELS, NOTE_TYPES, type NoteType, isNoteType } from "./note-types";
 
 export { NOTE_TYPE_LABELS, NOTE_TYPES, isNoteType };
@@ -209,7 +210,13 @@ async function createSupabaseNote(note: VoiceNote) {
     method: "POST",
     body: JSON.stringify(toSupabaseRow(note))
   });
-  return normalizeSupabaseResult(rows[0], "Could not save note");
+  const savedNote = normalizeSupabaseResult(rows[0], "Could not save note");
+
+  sendNoteCreatedToHermes(savedNote).catch((error) => {
+    console.error("Hermes webhook failed:", error);
+  });
+
+  return savedNote;
 }
 
 async function updateSupabaseNote(id: string, note: VoiceNote) {
