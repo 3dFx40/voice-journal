@@ -19,4 +19,4 @@ create index if not exists voice_notes_type_idx
 alter table public.voice_notes enable row level security;
 
 comment on table public.voice_notes is
-  'Private Voice Journal notes. The app accesses this table only from server routes with a Supabase secret/service-role key.';
+  'Private Personal Notebook notes. The app accesses this table only from server routes with a Supabase secret/service-role key.';

@@ -3,14 +3,14 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "יומן קולי",
-  description: "יומן קולי פרטי לתמלול ושמירת פתקים בעברית",
-  applicationName: "יומן קולי",
+  title: "פנקס אישי",
+  description: "פנקס אישי פרטי לתמלול ושמירת פתקים בעברית",
+  applicationName: "פנקס אישי",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "יומן קולי"
+    title: "פנקס אישי"
   },
   icons: {
     icon: [

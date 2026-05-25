@@ -447,7 +447,7 @@ export function VoiceJournalApp() {
             <WaveMarkIcon />
           </span>
           <div>
-            <h1>יומן קולי</h1>
+            <h1>פנקס אישי</h1>
             <p>פתקים פרטיים למחשבות, חלומות, רעיונות ותזכורות בקול.</p>
           </div>
         </div>
@@ -590,7 +590,7 @@ export function VoiceJournalApp() {
                   disabled={status === "saving" || !transcript.trim()}
                 >
                   <CheckIcon />
-                  שמור יומן
+                  שמור פתק
                 </button>
                 <button
                   className="secondary-button"
@@ -610,7 +610,7 @@ export function VoiceJournalApp() {
             <div className="archive-header">
               <div>
                 <p className="eyebrow">ארכיון</p>
-                <h2 id="archive-title">היומנים שלי</h2>
+                <h2 id="archive-title">הפתקים שלי</h2>
               </div>
               <div className="archive-actions">
                 <span className="status-pill">{notes.length} פתקים</span>
@@ -673,7 +673,7 @@ export function VoiceJournalApp() {
                   aria-label="חיפוש"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="חפש ביומנים..."
+                  placeholder="חפש בפתקים..."
                 />
               </label>
             </div>

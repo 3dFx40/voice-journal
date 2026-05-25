@@ -39,7 +39,7 @@ export function getExportedNotesText(
   exportedAt = new Date().toISOString()
 ) {
   const header = [
-    "יומן קולי - ייצוא מלא",
+    "פנקס אישי - ייצוא מלא",
     `נוצר בתאריך: ${exportedAt}`,
     `מספר פתקים: ${notes.length}`
   ];

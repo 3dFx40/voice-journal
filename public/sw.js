@@ -1,4 +1,4 @@
-const CACHE_NAME = "voice-journal-v1";
+const CACHE_NAME = "personal-notebook-v1";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

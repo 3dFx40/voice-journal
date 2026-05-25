@@ -1,6 +1,6 @@
-# Voice Journal
+# פנקס אישי
 
-Voice Journal is a small Hebrew-first private voice notebook. You can record a thought, dream, reminder, idea, or journal entry in the browser, transcribe it, edit the text, and save it into a searchable archive.
+פנקס אישי הוא פנקס פרטי בעברית להקלטה, תמלול ושמירה של מחשבות, חלומות, תזכורות, רעיונות ורשומות אישיות בארכיון שאפשר לחפש בו.
 
 The app is installable on Android as a PWA. It can run locally with file storage, or on Vercel with Supabase Postgres storage.
 
@@ -128,7 +128,7 @@ The note model and API routes are isolated in `src/lib/notes.ts` and `src/app/ap
 Do not implement in this MVP, but the future export/sync shape should support:
 
 ```text
-Voice Journal/
+פנקס אישי/
   Transcripts/
   Dreams/
   Ideas/

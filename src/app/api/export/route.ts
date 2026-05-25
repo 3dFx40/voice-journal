@@ -8,7 +8,7 @@ export async function GET() {
   const notes = await listNotes();
   const exportedAt = new Date().toISOString();
   const body = `\ufeff${getExportedNotesText(notes, exportedAt)}`;
-  const filename = `voice-journal-${exportedAt.slice(0, 10)}.txt`;
+  const filename = `personal-notebook-${exportedAt.slice(0, 10)}.txt`;
 
   return new NextResponse(body, {
     headers: {
