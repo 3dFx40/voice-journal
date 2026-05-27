@@ -38,7 +38,7 @@ const WAVE_LEVELS = [
 
 export function VoiceJournalApp() {
   const [notes, setNotes] = useState<VoiceNote[]>([]);
-  const [selectedNote, setSelectedNote] = useState<VoiceNote | null>(null);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState<VoiceNote | null>(null);
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [message, setMessage] = useState("מוכן להקלטה חדשה.");
@@ -99,12 +99,12 @@ export function VoiceJournalApp() {
     return () => window.clearInterval(interval);
   }, [status]);
 
-  const selectedSummary = useMemo(() => {
-    if (!selectedNote) {
+  const expandedNote = useMemo(() => {
+    if (!expandedNoteId) {
       return null;
     }
-    return noteHeading(selectedNote);
-  }, [selectedNote]);
+    return notes.find((n) => n.id === expandedNoteId) ?? null;
+  }, [expandedNoteId, notes]);
 
   const groupedNotes = useMemo(
     () =>
@@ -320,7 +320,7 @@ export function VoiceJournalApp() {
     }
 
     const data = (await response.json()) as { note: VoiceNote };
-    setSelectedNote(data.note);
+    setExpandedNoteId(data.note.id);
     setEditingNote(null);
     await loadNotes();
   }
@@ -340,8 +340,8 @@ export function VoiceJournalApp() {
       return;
     }
 
-    if (selectedNote?.id === noteId) {
-      setSelectedNote(null);
+    if (expandedNoteId === noteId) {
+      setExpandedNoteId(null);
       setEditingNote(null);
     }
     setSelectedNoteIds((ids) => removeNoteIdsFromSelection(ids, [noteId]));
@@ -376,8 +376,8 @@ export function VoiceJournalApp() {
         throw new Error("bulk delete failed");
       }
 
-      if (selectedNote && idsToDelete.includes(selectedNote.id)) {
-        setSelectedNote(null);
+      if (expandedNoteId && idsToDelete.includes(expandedNoteId)) {
+        setExpandedNoteId(null);
         setEditingNote(null);
       }
 
@@ -389,12 +389,12 @@ export function VoiceJournalApp() {
     }
   }
 
-  async function deleteSelectedNote() {
-    if (!selectedNote) {
+  async function deleteExpandedNote() {
+    if (!expandedNote) {
       return;
     }
 
-    await deleteNoteById(selectedNote.id);
+    await deleteNoteById(expandedNote.id);
   }
 
   async function copyNote(note: VoiceNote) {
@@ -736,7 +736,7 @@ export function VoiceJournalApp() {
                                 return;
                               }
 
-                              setSelectedNote(note);
+                              setExpandedNoteId(expandedNoteId === note.id ? null : note.id);
                               setEditingNote(null);
                             }}
                             aria-pressed={isSelectionMode ? isSelected : undefined}
@@ -761,11 +761,11 @@ export function VoiceJournalApp() {
                                   className="round-button"
                                   type="button"
                                   onClick={() => {
-                                    setSelectedNote(note);
+                                    setExpandedNoteId(expandedNoteId === note.id ? null : note.id);
                                     setEditingNote(null);
                                   }}
-                                  aria-label="פתח פתק"
-                                  title="פתח"
+                                  aria-label={expandedNoteId === note.id ? "צמצם פתק" : "הרחב פתק"}
+                                  title={expandedNoteId === note.id ? "צמצם" : "הרחב"}
                                 >
                                   <OpenNoteIcon />
                                 </button>
@@ -782,7 +782,7 @@ export function VoiceJournalApp() {
                                   className="round-button"
                                   type="button"
                                   onClick={() => {
-                                    setSelectedNote(note);
+                                    setExpandedNoteId(note.id);
                                     setEditingNote(note);
                                   }}
                                   aria-label="ערוך פתק"
@@ -802,6 +802,49 @@ export function VoiceJournalApp() {
                               </>
                             )}
                           </div>
+                          {expandedNoteId === note.id ? (
+                            <div className="note-expanded">
+                              {editingNote ? (
+                                <EditNoteForm
+                                  note={editingNote}
+                                  onChange={setEditingNote}
+                                  onCancel={() => setEditingNote(null)}
+                                  onSave={updateSelectedNote}
+                                />
+                              ) : (
+                                <>
+                                  <p className="full-transcript">{note.transcript}</p>
+                                  {note.tags.length > 0 ? (
+                                    <div className="tag-row">
+                                      {note.tags.map((tag) => (
+                                        <span className="tag" key={tag}>
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                  <div className="button-row">
+                                    <button
+                                      className="secondary-button icon-button"
+                                      type="button"
+                                      onClick={() => setEditingNote(note)}
+                                    >
+                                      <EditIcon />
+                                      ערוך
+                                    </button>
+                                    <button
+                                      className="danger-button icon-button"
+                                      type="button"
+                                      onClick={deleteExpandedNote}
+                                    >
+                                      <TrashIcon />
+                                      מחק
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : null}
                         </article>
                       );
                     })}
@@ -811,78 +854,6 @@ export function VoiceJournalApp() {
             </div>
           </div>
 
-          {selectedNote ? (
-            <aside className="detail-panel" aria-label="פרטי פתק">
-              <div className="detail-head">
-                <div>
-                  <p className="note-topline">
-                    <span className="type-chip">{NOTE_TYPE_LABELS[selectedNote.type]}</span>
-                    <time dateTime={selectedNote.createdAt}>
-                      {formatDate(selectedNote.createdAt)}
-                    </time>
-                  </p>
-                  <h3 className="detail-title">{selectedSummary}</h3>
-                </div>
-                <div className="detail-actions">
-                  <button
-                    className="round-button"
-                    type="button"
-                    onClick={() => void copyNote(selectedNote)}
-                    aria-label="העתק פתק"
-                    title="העתק"
-                  >
-                    <CopyIcon />
-                  </button>
-                  <button
-                    className="text-button"
-                    type="button"
-                    onClick={() => {
-                      setSelectedNote(null);
-                      setEditingNote(null);
-                    }}
-                  >
-                    סגור
-                  </button>
-                </div>
-              </div>
-
-              {editingNote ? (
-                <EditNoteForm
-                  note={editingNote}
-                  onChange={setEditingNote}
-                  onCancel={() => setEditingNote(null)}
-                  onSave={updateSelectedNote}
-                />
-              ) : (
-                <>
-                  <p className="full-transcript">{selectedNote.transcript}</p>
-                  {selectedNote.tags.length > 0 ? (
-                    <div className="tag-row">
-                      {selectedNote.tags.map((tag) => (
-                        <span className="tag" key={tag}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="button-row">
-                    <button
-                      className="secondary-button icon-button"
-                      type="button"
-                      onClick={() => setEditingNote(selectedNote)}
-                    >
-                      <EditIcon />
-                      ערוך
-                    </button>
-                    <button className="danger-button icon-button" type="button" onClick={deleteSelectedNote}>
-                      <TrashIcon />
-                      מחק
-                    </button>
-                  </div>
-                </>
-              )}
-            </aside>
-          ) : null}
         </section>
       </div>
     </main>
