@@ -1,23 +1,28 @@
 :root {
-  --background: #f6f2ea;
-  --paper: #fffdf8;
-  --paper-soft: #fbf8f1;
-  --paper-deep: #eee8dc;
-  --text: #27302d;
-  --muted: #6d746f;
-  --faint: #929891;
-  --border: #dfd7ca;
-  --accent: #5a8b6c;
-  --accent-strong: #2f654b;
-  --accent-soft: #e8f1e8;
-  --accent-wash: #f2f7f1;
-  --record: #f05f48;
-  --record-strong: #c94334;
-  --record-soft: #fde9e4;
-  --danger: #b84a43;
-  --danger-soft: #f7e1de;
-  --shadow: 0 18px 50px rgba(53, 45, 33, 0.08);
-  --focus: #34785a;
+  --background: #f8f5ef;
+  --paper: #fffefa;
+  --paper-soft: #fbf7ef;
+  --paper-deep: #eee6da;
+  --ink: #22312e;
+  --text: #283330;
+  --muted: #69726e;
+  --faint: #9a9f98;
+  --border: #e2d9cb;
+  --border-soft: #eee7dc;
+  --accent: #6f9b80;
+  --accent-strong: #365f4c;
+  --accent-soft: #e9f2ea;
+  --accent-wash: #f4f9f4;
+  --record: #ee6d58;
+  --record-strong: #bd4d3f;
+  --record-soft: #fff0ea;
+  --rose: #f4d8cf;
+  --sky: #dfe9ef;
+  --danger: #aa443e;
+  --danger-soft: #f8e4df;
+  --shadow: 0 20px 60px rgba(56, 45, 31, 0.08);
+  --shadow-soft: 0 10px 28px rgba(56, 45, 31, 0.055);
+  --focus: #3f7b60;
 }
 
 * {
@@ -33,12 +38,12 @@ body {
   min-height: 100%;
   margin: 0;
   background:
-    linear-gradient(90deg, rgba(39, 48, 45, 0.025) 1px, transparent 1px),
-    linear-gradient(rgba(39, 48, 45, 0.018) 1px, transparent 1px),
+    radial-gradient(circle at 18% 8%, rgba(244, 216, 207, 0.46), transparent 30%),
+    radial-gradient(circle at 86% 10%, rgba(223, 233, 239, 0.5), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 34%),
     var(--background);
-  background-size: 44px 44px;
   color: var(--text);
-  font-family: Arial, "Noto Sans Hebrew", sans-serif;
+  font-family: Arial, "Noto Sans Hebrew", "Segoe UI", sans-serif;
   line-height: 1.5;
 }
 
@@ -70,7 +75,7 @@ textarea:focus-visible {
 .app-shell {
   width: min(1280px, 100%);
   margin: 0 auto;
-  padding: 18px 14px 42px;
+  padding: 22px 16px 48px;
 }
 
 .top-bar {
@@ -78,13 +83,14 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  min-height: 78px;
-  margin-bottom: 16px;
-  padding: 12px 18px;
-  border: 1px solid var(--border);
+  min-height: 84px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid rgba(226, 217, 203, 0.86);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--paper) 94%, white);
-  box-shadow: var(--shadow);
+  background: rgba(255, 254, 250, 0.86);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
 }
 
 .brand-lockup,
@@ -105,12 +111,13 @@ textarea:focus-visible {
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
   border-radius: 50%;
-  background: linear-gradient(145deg, var(--accent-soft), #d6e5d9);
+  background: linear-gradient(145deg, #f5fbf5, #dbeadb);
   color: var(--accent-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .brand-wave {
@@ -120,9 +127,10 @@ textarea:focus-visible {
 
 .top-bar h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 3vw, 2.65rem);
+  font-size: clamp(1.65rem, 2.5vw, 2.35rem);
   line-height: 1;
   letter-spacing: 0;
+  color: var(--ink);
 }
 
 .top-bar p {
@@ -142,11 +150,11 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 7px 13px;
-  border: 1px solid var(--border);
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: var(--paper);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--muted);
   font-size: 0.92rem;
 }
@@ -171,8 +179,8 @@ textarea:focus-visible {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.85fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.48fr) minmax(370px, 0.92fr);
+  gap: 16px;
   align-items: start;
   direction: ltr;
 }
@@ -180,10 +188,11 @@ textarea:focus-visible {
 .recorder-panel,
 .archive-shell,
 .detail-panel {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(226, 217, 203, 0.88);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--paper) 95%, white);
+  background: rgba(255, 254, 250, 0.9);
   box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
 }
 
 .recorder-panel {
@@ -197,17 +206,17 @@ textarea:focus-visible {
 
 .record-stage {
   display: grid;
-  gap: 20px;
+  gap: 22px;
   justify-items: center;
-  padding: clamp(22px, 4vw, 42px);
-  border-bottom: 1px solid var(--border);
+  padding: clamp(28px, 5vw, 56px) clamp(18px, 4vw, 48px);
+  border-bottom: 1px solid var(--border-soft);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 250, 245, 0.58)),
     var(--paper-soft);
 }
 
 .record-heading {
-  max-width: 34rem;
+  max-width: 38rem;
   text-align: center;
 }
 
@@ -224,6 +233,13 @@ textarea:focus-visible {
   margin: 0;
   font-size: clamp(1.35rem, 2vw, 1.8rem);
   letter-spacing: 0;
+}
+
+.record-subtitle {
+  max-width: 30rem;
+  margin: 10px auto 0;
+  color: var(--muted);
+  font-size: 1rem;
 }
 
 .record-core {
@@ -244,7 +260,7 @@ textarea:focus-visible {
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
-  color: #263431;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -259,17 +275,17 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   gap: 8px;
-  width: 150px;
-  height: 150px;
+  width: 156px;
+  height: 156px;
   border: 1px solid color-mix(in srgb, var(--record) 24%, transparent);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ff816c, var(--record));
+  background: radial-gradient(circle at 35% 30%, #ff9a82, var(--record) 58%, var(--record-strong));
   color: white;
   font-weight: 800;
   box-shadow:
-    0 0 0 12px rgba(240, 95, 72, 0.1),
-    0 0 0 24px rgba(240, 95, 72, 0.055),
-    0 20px 38px rgba(201, 67, 52, 0.22);
+    0 0 0 12px rgba(238, 109, 88, 0.1),
+    0 0 0 26px rgba(238, 109, 88, 0.055),
+    0 22px 42px rgba(189, 77, 63, 0.24);
   transition: transform 170ms ease, box-shadow 170ms ease, background 170ms ease;
 }
 
@@ -297,11 +313,12 @@ textarea:focus-visible {
   justify-content: center;
   gap: 4px;
   width: min(660px, 100%);
-  min-height: 92px;
-  padding: 18px 20px;
-  border: 1px solid var(--border);
+  min-height: 94px;
+  padding: 18px 22px;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 .wave {
@@ -339,7 +356,7 @@ textarea:focus-visible {
 
 .message {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
   background: var(--paper-soft);
 }
@@ -361,7 +378,8 @@ textarea:focus-visible {
 }
 
 .draft-panel {
-  padding: clamp(18px, 3vw, 26px);
+  padding: clamp(20px, 3vw, 30px);
+  background: rgba(255, 254, 250, 0.72);
 }
 
 .draft-head,
@@ -418,15 +436,15 @@ textarea:focus-visible {
 .search-box input {
   width: 100%;
   min-height: 46px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: white;
+  background: rgba(255, 255, 255, 0.86);
   color: var(--text);
   padding: 10px 12px;
 }
 
 .field textarea {
-  min-height: 138px;
+  min-height: 150px;
   resize: vertical;
 }
 
@@ -457,14 +475,14 @@ textarea:focus-visible {
 
 .primary-button {
   border: 1px solid var(--accent-strong);
-  background: linear-gradient(180deg, #6d9b7b, var(--accent-strong));
+  background: linear-gradient(180deg, #78a889, var(--accent-strong));
   color: white;
   box-shadow: 0 15px 28px rgba(47, 101, 75, 0.18);
 }
 
 .secondary-button {
-  border: 1px solid var(--border);
-  background: white;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.78);
   color: var(--text);
 }
 
@@ -504,11 +522,13 @@ textarea:focus-visible {
 .archive-panel {
   display: grid;
   gap: 14px;
+  position: sticky;
+  top: 14px;
 }
 
 .archive-shell {
   display: grid;
-  gap: 14px;
+  gap: 15px;
   padding: 18px;
 }
 
@@ -540,9 +560,9 @@ textarea:focus-visible {
   gap: 1px;
   min-height: 60px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: var(--paper-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(251, 247, 239, 0.82));
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -562,9 +582,9 @@ textarea:focus-visible {
   gap: 8px;
   min-height: 46px;
   padding-inline: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: white;
+  background: rgba(255, 255, 255, 0.82);
   color: var(--faint);
 }
 
@@ -582,8 +602,8 @@ textarea:focus-visible {
 
 .filter-chip {
   min-height: 38px;
-  border: 1px solid var(--border);
-  background: white;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.76);
   color: var(--muted);
 }
 
@@ -627,18 +647,19 @@ textarea:focus-visible {
 
 .note-card {
   display: grid;
-  gap: 10px;
+  gap: 11px;
   padding: 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  background: rgba(255, 255, 255, 0.66);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, background 150ms ease;
 }
 
 .note-card:hover {
   border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: 0 12px 28px rgba(53, 45, 33, 0.07);
   transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .note-card.selected {
@@ -701,6 +722,17 @@ textarea:focus-visible {
   line-height: 1.35;
 }
 
+.note-preview {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .note-actions {
   justify-content: flex-start;
   gap: 8px;
@@ -727,8 +759,8 @@ textarea:focus-visible {
   place-items: center;
   width: 38px;
   height: 38px;
-  border: 1px solid var(--border);
-  background: white;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.84);
   color: var(--accent-strong);
   transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
@@ -745,8 +777,8 @@ textarea:focus-visible {
 
 .detail-panel {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 16px;
+  padding: 18px;
 }
 
 .detail-head {
@@ -755,7 +787,9 @@ textarea:focus-visible {
 
 .detail-title {
   margin: 8px 0 0;
-  font-size: 1.35rem;
+  color: var(--ink);
+  font-size: 1.45rem;
+  line-height: 1.25;
 }
 
 .detail-actions {
@@ -765,10 +799,13 @@ textarea:focus-visible {
 .full-transcript {
   white-space: pre-wrap;
   margin: 0;
-  padding: 14px;
-  border: 1px solid var(--border);
+  padding: 16px;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: var(--paper-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(251, 247, 239, 0.78));
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.75;
 }
 
 .tag-row {
@@ -778,11 +815,11 @@ textarea:focus-visible {
 }
 
 .tag {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
   padding: 4px 9px;
   color: var(--muted);
-  background: white;
+  background: rgba(255, 255, 255, 0.78);
   font-size: 0.86rem;
 }
 
@@ -790,10 +827,11 @@ textarea:focus-visible {
   display: grid;
   justify-items: center;
   gap: 8px;
-  padding: 28px 18px;
-  border: 1px dashed var(--border);
+  padding: 30px 18px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 24%, var(--border));
   border-radius: 8px;
   text-align: center;
+  background: rgba(255, 255, 255, 0.48);
 }
 
 .empty-state p {
@@ -848,6 +886,7 @@ textarea:focus-visible {
 
   .archive-panel {
     grid-row: auto;
+    position: static;
   }
 }
 

@@ -3,7 +3,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  globalIgnores([".netlify/**"]),
+  globalIgnores([".netlify/**", ".vercel/**"]),
   ...nextVitals,
   ...nextTs
 ];

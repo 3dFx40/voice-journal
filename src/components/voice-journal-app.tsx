@@ -448,7 +448,7 @@ export function VoiceJournalApp() {
           </span>
           <div>
             <h1>פנקס אישי</h1>
-            <p>פתקים פרטיים למחשבות, חלומות, רעיונות ותזכורות בקול.</p>
+            <p>מקום שקט לשמור מחשבות, חלומות, רעיונות ותזכורות בקול.</p>
           </div>
         </div>
         <div className="header-meta" aria-label="מצב האפליקציה">
@@ -472,8 +472,11 @@ export function VoiceJournalApp() {
         <section className="recorder-panel" aria-labelledby="recording-title">
           <div className="record-stage">
             <div className="record-heading">
-              <p className="eyebrow">התחלה מהירה</p>
-              <h2 id="recording-title">דבר עכשיו, ערוך רגע לפני השמירה</h2>
+              <p className="eyebrow">רגע לעצמך</p>
+              <h2 id="recording-title">דבר בחופשיות, נסדר את זה לפתק</h2>
+              <p className="record-subtitle">
+                הקלטה קצרה, תמלול, עריכה ושמירה בארכיון הפרטי שלך.
+              </p>
             </div>
 
             <div className={`record-core ${isRecording ? "is-live" : ""}`}>
@@ -705,7 +708,7 @@ export function VoiceJournalApp() {
                     <MicIcon />
                   </span>
                   <p>אין פתקים שמורים עדיין.</p>
-                  <small>הקלטה ראשונה תופיע כאן עם חיפוש, סינון ופעולות מהירות.</small>
+                  <small>הפתק הראשון שלך יופיע כאן מיד אחרי השמירה.</small>
                 </div>
               ) : (
                 groupedNotes.map((group) => (
@@ -744,6 +747,7 @@ export function VoiceJournalApp() {
                             <h4 className="note-title">
                               {listTitle || "ללא שם"}
                             </h4>
+                            <p className="note-preview">{getNotePreview(note)}</p>
                           </button>
                           <div className="note-actions">
                             {isSelectionMode ? (
@@ -1056,6 +1060,15 @@ function pickMimeType() {
 
 function noteHeading(note: VoiceNote) {
   return note.title?.trim() || "ללא שם";
+}
+
+function getNotePreview(note: VoiceNote) {
+  const normalized = note.transcript.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "אין תמלול עדיין.";
+  }
+
+  return normalized.length > 112 ? `${normalized.slice(0, 112)}...` : normalized;
 }
 
 function formatDate(value: string) {
