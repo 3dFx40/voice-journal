@@ -12,7 +12,6 @@ export function getResetRecordingDraftState() {
   return {
     transcript: "",
     title: "",
-    tags: "",
     type: "thought" as const,
     elapsedSeconds: 0
   };

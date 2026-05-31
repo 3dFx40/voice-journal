@@ -37,7 +37,6 @@ describe("recording flow labels", () => {
     expect(getResetRecordingDraftState()).toEqual({
       transcript: "",
       title: "",
-      tags: "",
       type: "thought",
       elapsedSeconds: 0
     });

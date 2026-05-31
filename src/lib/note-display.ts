@@ -26,7 +26,6 @@ export function getCopyableNoteText(note: {
   const lines = [
     note.title?.trim(),
     `סוג: ${NOTE_TYPE_LABELS[note.type]}`,
-    note.tags?.length ? `תגיות: ${note.tags.join(", ")}` : undefined,
     "",
     note.transcript.trim()
   ];
@@ -55,7 +54,6 @@ export function getExportedNotesText(
       `סוג: ${NOTE_TYPE_LABELS[note.type]}`,
       `נוצר: ${note.createdAt}`,
       note.updatedAt ? `עודכן: ${note.updatedAt}` : undefined,
-      note.tags?.length ? `תגיות: ${note.tags.join(", ")}` : undefined,
       "",
       "תוכן:",
       note.transcript.trim()

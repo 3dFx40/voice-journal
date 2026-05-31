@@ -46,7 +46,6 @@ export function VoiceJournalApp() {
   const [copyMessage, setCopyMessage] = useState("");
   const [transcript, setTranscript] = useState("");
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
   const [type, setType] = useState<NoteType>("thought");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [search, setSearch] = useState("");
@@ -280,7 +279,7 @@ export function VoiceJournalApp() {
           type,
           transcript,
           title,
-          tags
+          tags: []
         })
       });
 
@@ -411,7 +410,6 @@ export function VoiceJournalApp() {
     const draft = getResetRecordingDraftState();
     setTranscript(draft.transcript);
     setTitle(draft.title);
-    setTags(draft.tags);
     setType(draft.type);
     setElapsedSeconds(draft.elapsedSeconds);
   }
@@ -573,15 +571,6 @@ export function VoiceJournalApp() {
                   value={transcript}
                   onChange={(event) => setTranscript(event.target.value)}
                   placeholder="התמלול יופיע כאן, ואפשר גם להקליד ידנית."
-                />
-              </label>
-
-              <label className="field full">
-                <span>תגיות</span>
-                <input
-                  value={tags}
-                  onChange={(event) => setTags(event.target.value)}
-                  placeholder="למשל: עבודה, חלום, ערב"
                 />
               </label>
 
@@ -818,16 +807,7 @@ export function VoiceJournalApp() {
                               ) : (
                                 <>
                                   <p className="full-transcript">{note.transcript}</p>
-                                  {note.tags.length > 0 ? (
-                                    <div className="tag-row">
-                                      {note.tags.map((tag) => (
-                                        <span className="tag" key={tag}>
-                                          {tag}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  ) : null}
-                                  <div className="button-row">
+                              <div className="button-row">
                                     <button
                                       className="secondary-button icon-button"
                                       type="button"
@@ -904,21 +884,6 @@ function EditNoteForm({
         <textarea
           value={note.transcript}
           onChange={(event) => onChange({ ...note, transcript: event.target.value })}
-        />
-      </label>
-      <label className="field full">
-        <span>תגיות</span>
-        <input
-          value={note.tags.join(", ")}
-          onChange={(event) =>
-            onChange({
-              ...note,
-              tags: event.target.value
-                .split(",")
-                .map((tag) => tag.trim())
-                .filter(Boolean)
-            })
-          }
         />
       </label>
       <div className="button-row full">
@@ -1056,10 +1021,6 @@ function pickMimeType() {
 
   const options = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
   return options.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? "";
-}
-
-function noteHeading(note: VoiceNote) {
-  return note.title?.trim() || "ללא שם";
 }
 
 function getNotePreview(note: VoiceNote) {

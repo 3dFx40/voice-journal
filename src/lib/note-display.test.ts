@@ -24,7 +24,7 @@ describe("note display helpers", () => {
     ).toBe("");
   });
 
-  it("copies title, type, tags and full transcript", () => {
+  it("copies title, type and full transcript", () => {
     expect(
       getCopyableNoteText({
         title: "פגישה עם דנה",
@@ -32,7 +32,7 @@ describe("note display helpers", () => {
         tags: ["עבודה", "חשוב"],
         transcript: "להתקשר מחר בבוקר"
       })
-    ).toBe("פגישה עם דנה\nסוג: תזכורת\nתגיות: עבודה, חשוב\n\nלהתקשר מחר בבוקר");
+    ).toBe("פגישה עם דנה\nסוג: תזכורת\n\nלהתקשר מחר בבוקר");
   });
 
   it("exports all notes as readable text", () => {
@@ -61,7 +61,6 @@ describe("note display helpers", () => {
         "סוג: רעיון",
         "נוצר: 2026-05-24T10:00:00.000Z",
         "עודכן: 2026-05-24T10:01:00.000Z",
-        "תגיות: עבודה",
         "",
         "תוכן:",
         "לבנות כפתור ייצוא"
