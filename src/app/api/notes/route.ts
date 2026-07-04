@@ -33,11 +33,28 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ note }, { status: 201 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not save note";
+    console.error("Create note failed:", {
+      error: message,
+      type: body.type,
+      hasTranscript: typeof body.transcript === "string" && body.transcript.trim().length > 0,
+      hasTitle: typeof body.title === "string" && body.title.trim().length > 0,
+      tagCount: Array.isArray(body.tags) ? body.tags.length : 0
+    });
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save note" },
-      { status: 400 }
+      { error: message },
+      { status: getCreateNoteErrorStatus(message) }
     );
   }
+}
+
+function getCreateNoteErrorStatus(message: string) {
+  if (message === "Invalid note type" || message === "Transcript is required") {
+    return 400;
+  }
+
+  return 500;
 }
 
 function optionalString(value: unknown) {

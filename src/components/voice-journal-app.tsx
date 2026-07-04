@@ -5,6 +5,7 @@ import {
   getCopyableNoteText,
   getNoteListTitle
 } from "@/lib/note-display";
+import { getApiErrorMessage, getSaveNoteErrorMessage } from "@/lib/api-errors";
 import {
   getAllNoteIdsSelected,
   removeNoteIdsFromSelection,
@@ -272,26 +273,30 @@ export function VoiceJournalApp() {
     setError("");
 
     try {
+      const payload = {
+        type,
+        transcript,
+        title,
+        tags: []
+      };
+      console.debug("save note payload:", payload);
+
       const response = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          transcript,
-          title,
-          tags: []
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error("save failed");
+        throw new Error(await getApiErrorMessage(response, "Could not save note"));
       }
 
       resetDraft();
       setMessage("הפתק נשמר בארכיון המקומי.");
       await loadNotes();
-    } catch {
-      setError("שמירת הפתק נכשלה.");
+    } catch (error) {
+      console.error("save note error:", error);
+      setError(getSaveNoteErrorMessage(error));
     } finally {
       setStatus("idle");
     }
@@ -314,7 +319,7 @@ export function VoiceJournalApp() {
     });
 
     if (!response.ok) {
-      setError("העדכון נכשל.");
+      setError(await getApiErrorMessage(response, "העדכון נכשל."));
       return;
     }
 

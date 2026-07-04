@@ -1,4 +1,4 @@
-const CACHE_NAME = "personal-notebook-v1";
+const CACHE_NAME = "personal-notebook-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -13,6 +13,12 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(APP_SHELL))
       .then(() => self.skipWaiting())
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {

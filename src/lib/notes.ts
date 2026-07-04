@@ -53,6 +53,19 @@ export function shouldUseSupabase() {
   );
 }
 
+function assertConfiguredStorage() {
+  if (
+    process.env.VOICE_JOURNAL_STORAGE === "file" ||
+    process.env.NODE_ENV !== "production"
+  ) {
+    return;
+  }
+
+  if (!shouldUseSupabase()) {
+    throw new Error("Production storage requires Supabase configuration");
+  }
+}
+
 export async function listNotes(filters: NoteFilters = {}, dataDir = getDataDir()) {
   const notes = await readNotes(dataDir);
   const search = filters.search?.trim().toLocaleLowerCase("he");
@@ -91,6 +104,8 @@ export async function getNote(id: string, dataDir = getDataDir()) {
 }
 
 export async function createNote(input: NoteInput, dataDir = getDataDir()) {
+  assertConfiguredStorage();
+
   const notes = shouldUseSupabase() ? [] : await readFileNotes(dataDir);
   const now = new Date().toISOString();
   const note: VoiceNote = {

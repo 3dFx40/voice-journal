@@ -15,7 +15,7 @@ describe("POST /api/notes", () => {
   it("returns the saved note after creating it", async () => {
     const savedNote = {
       id: "note-1",
-      type: "reminder",
+      type: "reminder" as const,
       transcript: "Call tomorrow",
       title: "Follow up",
       tags: ["calls"],
