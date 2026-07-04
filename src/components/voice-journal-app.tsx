@@ -15,6 +15,7 @@ import {
 import { NOTE_TYPE_LABELS, NOTE_TYPES, type NoteType } from "@/lib/note-types";
 import {
   formatRecordingDuration,
+  getMicrophoneErrorMessage,
   getRecordingPrimaryAction,
   getResetRecordingDraftState,
   getRecordingStatusLabel,
@@ -168,9 +169,10 @@ export function VoiceJournalApp() {
       setElapsedSeconds(0);
       setStatus("recording");
       setMessage("מקליט עכשיו. אפשר לעצור כשסיימת.");
-    } catch {
+    } catch (error) {
+      console.error("microphone recording failed:", error);
       setStatus("idle");
-      setError("לא הצלחתי לפתוח את המיקרופון. בדוק הרשאות בדפדפן.");
+      setError(getMicrophoneErrorMessage(error));
       setMessage("אפשר עדיין להקליד תמלול ידנית ולשמור.");
     }
   }

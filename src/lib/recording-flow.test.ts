@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getResetRecordingDraftState,
   formatRecordingDuration,
+  getMicrophoneErrorMessage,
   getRecordingPrimaryAction,
   getRecordingStatusLabel
 } from "./recording-flow";
@@ -44,5 +45,17 @@ describe("recording flow labels", () => {
 
   it("starts a new recording timer from zero", () => {
     expect(getResetRecordingDraftState().elapsedSeconds).toBe(0);
+  });
+
+  it("explains blocked microphone permission failures", () => {
+    expect(getMicrophoneErrorMessage(new DOMException("blocked", "NotAllowedError"))).toBe(
+      "הרשאת המיקרופון חסומה. לחץ על סמל המנעול ליד הכתובת ואפשר Microphone."
+    );
+  });
+
+  it("explains missing microphone devices", () => {
+    expect(getMicrophoneErrorMessage(new DOMException("missing", "NotFoundError"))).toBe(
+      "לא נמצא מיקרופון מחובר או זמין במחשב."
+    );
   });
 });
