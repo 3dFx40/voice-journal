@@ -125,6 +125,7 @@ export async function createNote(input: NoteInput, dataDir = getDataDir()) {
   }
 
   await writeFileNotes([note, ...notes], dataDir);
+  await notifyHermes(note);
   return note;
 }
 
@@ -207,10 +208,15 @@ async function writeFileNotes(notes: VoiceNote[], dataDir: string) {
 }
 
 async function readSupabaseNotes() {
-  const rows = await supabaseRequest<SupabaseNoteRow[]>(
-    "/voice_notes?select=*&order=created_at.desc"
-  );
-  return normalizeStoredNotes(rows.map(fromSupabaseRow));
+  try {
+    const rows = await supabaseRequest<SupabaseNoteRow[]>(
+      "/voice_notes?select=*&order=created_at.desc"
+    );
+    return normalizeStoredNotes(rows.map(fromSupabaseRow));
+  } catch (error) {
+    console.error("Supabase notes list failed:", error);
+    return [];
+  }
 }
 
 async function readSupabaseNote(id: string) {
@@ -221,17 +227,29 @@ async function readSupabaseNote(id: string) {
 }
 
 async function createSupabaseNote(note: VoiceNote) {
-  const rows = await supabaseRequest<SupabaseNoteRow[]>("/voice_notes", {
-    method: "POST",
-    body: JSON.stringify(toSupabaseRow(note))
-  });
-  const savedNote = normalizeSupabaseResult(rows[0], "Could not save note");
+  try {
+    const rows = await supabaseRequest<SupabaseNoteRow[]>("/voice_notes", {
+      method: "POST",
+      body: JSON.stringify(toSupabaseRow(note))
+    });
+    const savedNote = normalizeSupabaseResult(rows[0], "Could not save note");
 
-  sendNoteCreatedToHermes(savedNote).catch((error) => {
+    await notifyHermes(savedNote);
+
+    return savedNote;
+  } catch (error) {
+    console.error("Supabase note save failed; notifying Hermes without archive persistence:", error);
+    await notifyHermes(note);
+    return note;
+  }
+}
+
+async function notifyHermes(note: VoiceNote) {
+  try {
+    await sendNoteCreatedToHermes(note);
+  } catch (error) {
     console.error("Hermes webhook failed:", error);
-  });
-
-  return savedNote;
+  }
 }
 
 async function updateSupabaseNote(id: string, note: VoiceNote) {
